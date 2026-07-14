@@ -1,4 +1,7 @@
-- robots.txt can have juicy routes
+- robots.txt can have juicy routes, waybackmachine
+
+.git/HEAD - https://github.com/arthaud/git-dumper
+
 - see some wordlists on https://github.com/hAPI-hacker/Hacking-APIs
 - burp suite - maybe
 
@@ -145,6 +148,8 @@ https://crt.sh/?q=postarca
 !!
 https://ctlog.si/
 
+https://www.certkit.io/tools/ct-logs/?query=kralj.io
+
 - vse tvoje subdomene :))))))))))
 
 also, v eni minute gre gor -> takoj si fucked, če maš unconfigured admin panel
@@ -162,3 +167,7 @@ https://bgp.he.net/
 rev c# - dotpeek
 
 https://github.com/bitquark/shortscan - windscribe
+
+wordpress - https://hacktricks.wiki/en/network-services-pentesting/pentesting-web/wordpress.html && https://github.com/pentesterzone/pentest-checklists/blob/master/CMS/WordPress-Checklist.md
+https://github.com/wpscanteam/wpscan/
+

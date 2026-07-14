@@ -17,6 +17,9 @@ pwn template
 pwndbg
 - x/n -> prints n things -> if you have e.g. x interpreter and that doesn't work (it thinks the value is an addr or sth), * and & work (x &interpreter)
 - tele
+- ni
+- si
+- finish (go until ret of current function)
 
 context
 stack
@@ -61,6 +64,8 @@ stack "frame":
 [rbp]
 [return address]
 
+also, 8 bit stvari so 8 bit aligned v memoriju
+
 ASLR obstaja
 --> leakej pointer
 - PIE -> ASLRamo še binary; če ne, je na statični poziciji
@@ -79,13 +84,14 @@ stack canary:
 --> kako beatat? leak / brute force
 
 .text - veš
-.dat - raw stringi
+.data - raw stringi
 .bss - globalne variable
 
 test eax eax -> ne nastavi registrov, samo zero flag
 -> npr. jeq potem, če je eax = 0
 
 če delaš artitmetiko s pointerji je to probably array offset
+-> + mul, če je pa samo + je pa struct offset, sej nisi stupid
 
 word = 2 bytes
 
@@ -110,6 +116,8 @@ libc
 direct printf je itak amazing: https://github.com/whatsyourask/basics-of-pwn/blob/main/content/format-string/format-string.md
 %number$x
 
+https://docs.pwntools.com/en/stable/fmtstr.html
+
 https://www.ired.team/offensive-security/code-injection-process-injection/binary-exploitation/return-to-libc-ret2libc
 
 https://ir0nstone.gitbook.io/notes
@@ -117,5 +125,61 @@ https://ir0nstone.gitbook.io/notes
 https://www.felixcloutier.com/x86/$instruction
 
 endbr64 - basically nop, ideja je da cpu checka, da si actually jumpov na ok lokacijo, ampak ni nikjer implemented :)))
+- IBT - indirect branch tracking, na nekaterih intel / amd
+
+SHSTK - shadow stack - ločen stack samo za ret addre, prepreči ret hijacking -> samo Intel!
 
 če pozab initializat kkšn field: star chunk ponovno mallocan, podatki ostanejo :)))
+
+don't know libc version? https://libc.blukat.me/
+
+if you can run arbitrary asm, you don't even need libc! execve syscall (also, you can do environment = null and args = null)
+
+ofc ne free ne stack pop ne karkoli actually ne deleta memorija, malloc ti returna start podatke..
+
+note da ima mips recimo (pa druge arhitekture) precej bl shit protectione
+
+glibc!
+https://sourceware.org/glibc/wiki/Glibc%20Timeline
+2.3 | Malloc is rewritten, unsure what was before, but this brings about bins (although without any protections)
+2.3.3 | New syscall interface, lots of PLT entries removed, fexecve added
+2.16 | support for the x32 ABI on x86-64
+
+2.18 | CVE-2013-2207 Incorrectly granting access to another user's pseudo-terminal
+     | CVE-2013-0242 Buffer overrun in regexp matcher has been fixed
+     | CVE-2013-1914 Stack overflow in getaddrinfo with many results
+
+2.19 | CVE-2013-4788 The pointer guard used for pointer mangling was not
+  initialized for static applications resulting in the security feature
+  being disabled
+
+2.21 | CVE-2015-1472 Under certain conditions wscanf can allocate too little
+  memory for the to-be-scanned arguments and overflow the allocated
+  buffer
+     
+2.24 | __malloc_initialize_hook removed
+     | lots of network cves
+     
+2.25 | Most of glibc can now be built with the stack smashing protector
+  enabled.  It is recommended to build glibc with --enable-stack-
+  protector=strong.
+
+2.26 | Tcache added
+2.29 | Tcache keys, double-free protection; also makes glibc verify the size of the previous block
+2.32 | Safe linking - XOR mangling of pointers for singly linked lists (tcache, fastbins)
+2.34 | __malloc_hook, __free_hook and __realloc_hook are kill; tcache keys are now random instead of heap pointers
+
+2.38 | CVE-2023-25139: When the printf family of functions is called with a
+  format specifier that uses an <apostrophe> (enable grouping) and a
+  minimum width specifier - potential buffer overflow
+
+2.43 | fastbins are kill
+
+https://oneraynyday.github.io/dev/2020/05/03/Analyzing-The-Simplest-C++-Program/
+
+setvbuf modes:
+- IOFBF = 0 (full buffer)
+- IOLBF = 1 (line buffer)
+- IONBF = 2 (no buffer)
+
+setvbuf(stdin, 0, 2, 0) -> set mode to not buffered
