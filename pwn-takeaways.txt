@@ -183,3 +183,9 @@ setvbuf modes:
 - IONBF = 2 (no buffer)
 
 setvbuf(stdin, 0, 2, 0) -> set mode to not buffered
+
+open / read / write -> *file descriptor*, 0 STDIN, 1 STDOUT, 2 STDERR
+open naredi nov file descriptor, ki je literally samo incremental od 3 naprej (you had one job)
+
+fopen / fread / fwrite -> FILE*
+
