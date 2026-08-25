@@ -1,18 +1,20 @@
+pimp out your exploits scripts: https://emojicombos.com/boykisser-ascii-art
+
 https://syscall.sh/
 
-ldd - view versions of ld and glibc
+ldd - view versions of ld and glibc - asterisk, view where they are linked to, not the version!
 
 pwninit - use the correct libc
 
 objdump -d <stuff>
 
-(objdump --disassembler-color=on -M intel -d $@) - this is objd
+(objdump --disassembler-color=on -M intel -d $@)
 
 zalaufi ropr!!! (also, one_gadget)
 
 https://dogbolt.org/
 
-pwn template
+pwn template (tudi iz dockerfila vzame), pwninit ti zalaufa patchelf
 
 pwndbg
 - x/n -> prints n things -> if you have e.g. x interpreter and that doesn't work (it thinks the value is an addr or sth), * and & work (x &interpreter)
@@ -20,11 +22,17 @@ pwndbg
 - ni
 - si
 - finish (go until ret of current function)
+- start -> very useful when you have no main
+- set follow-fork-mode child / parent --- za forke
+- disass <func>
+- core <coredump>
 
-context
-stack
-break
-run (can have redirects (<))
+- context
+- stack
+- bins
+- vis
+- break (info breakpoints / del <num>)
+- run (can have redirects (<))
 
 -- runtime
 
@@ -54,8 +62,11 @@ man x86-<sth>
 checksec !!!
 
 če maš system("/bin/sh") si že zmagal(a)
+    -> system(neki) naredi sh -c "neki"
 
 #include <unistd.h>
+
+c headerji so v /usr/include
 
 stack itak veš da gre višji del -> nižjem
 stack "frame":
@@ -64,12 +75,26 @@ stack "frame":
 [rbp]
 [return address]
 
-also, 8 bit stvari so 8 bit aligned v memoriju
+wonky ass arhitekture: qemu
+- npr. qemu-riscv32-static <myapp> in ga lepo zalaufa
+- debug: qemu-riscv32-static <myapp> -g <port> (čaka za gdb connection)
+    - gdb -ex "target remote localhost:<port>" -ex "set architecture riscv:rv32" -ex "file <myapp>"
+        - -ex : laufi to komando
+
+also, 8 byte stvari so 8 byte aligned v memoriju
 
 ASLR obstaja
 --> leakej pointer
 - PIE -> ASLRamo še binary; če ne, je na statični poziciji
 --> leak libcja prek heapa: unsorted bin v main arena
+
+---> heap: poleg free hooka pa vsega tega, delaš tud ROP prek stacka
+---> also: majhni bini so O(n) checked, unsorted niso!! -> samo ne freejej dvakrat zapored istega
+---> also z overflowom lahko nastaviš size, overlapping chunki
+---> dost velk chunk: noter narediš šeen fake chunk, potem daš nek pointer na njega v binih
+---> tcache je na začetk heap-a (tcache_perthread_struct)
+
+heap: shellphish/how2heap !!
 
 disable ASLR
 echo 0 | sudo tee /proc/sys/kernel/randomize_va_space
@@ -77,9 +102,13 @@ echo 0 | sudo tee /proc/sys/kernel/randomize_va_space
 enable ASLR
 echo 2 | sudo tee /proc/sys/kernel/randomize_va_space
 
+default kaj naredi gcc (a so canariji by default, kdaj, ...) nastavijo distroji; nekateri (khm khm debian) še vedno ne uporablajo canarijev
+
 stack canary:
-- na stack je pushan nek random thingy iz kernel thread spaca (?)
+- na stack je pushan nek random thingy iz kernel thread local space-a, kernel ga zgenerira, ampak ni per function unique
+- 7 random bytov + null da ne moreš leakat
 - to se na konc funkcije prever, če ni ok -> bad things
+- -fstack-protector-strong, -fno-stack-protector
 
 --> kako beatat? leak / brute force
 
@@ -95,6 +124,8 @@ test eax eax -> ne nastavi registrov, samo zero flag
 
 word = 2 bytes
 
+__ctype_b_loc --> glej https://stackoverflow.com/questions/37702434/ctype-b-loc-what-is-its-purpose, uporablen je za is_uppercase, lowercase, alphanumeric etc za chare; 0x2000 je is_blank
+
 ROP samo pomen da si controllov return address, skoču na "gadget" -> snippet z ret-om
 --> as mentioned before, stack more bit 16-bit aligned, če nočeš SIGSEGV ob system -> gadget z ret-om
 
@@ -103,6 +134,8 @@ NX samo pomen da sta stack in heap no execute
 libc
 - GOT (global offset table) -> libc addressi
     - napolne po actual callu funkcije
+        - partial relro: pred .bss
+        - no relro: i guess po .bss-ju?
 - PLT (procedure linking table) -> actually tja kamor jumpaš da kličeš stvari
 
 - navadno leak libc -> calculate offset -> kej pametnega
@@ -115,6 +148,12 @@ libc
 
 direct printf je itak amazing: https://github.com/whatsyourask/basics-of-pwn/blob/main/content/format-string/format-string.md
 %number$x
+
+-> offset: 
+    Send a recognizable prefix followed by multiple pointer specifiers.
+    Example payload: AAAA %p %p %p %p %p %p %p
+    Check the output for the hexadecimal representation of your prefix (AAAA = 0x41414141).
+    Count which %p prints 0x41414141. That number is your offset.
 
 https://docs.pwntools.com/en/stable/fmtstr.html
 
@@ -131,7 +170,9 @@ SHSTK - shadow stack - ločen stack samo za ret addre, prepreči ret hijacking -
 
 če pozab initializat kkšn field: star chunk ponovno mallocan, podatki ostanejo :)))
 
-don't know libc version? https://libc.blukat.me/
+don't know libc version? https://libc.rip/
+
+libc source: https://elixir.bootlin.com/glibc/glibc-2.39/source/iconv
 
 if you can run arbitrary asm, you don't even need libc! execve syscall (also, you can do environment = null and args = null)
 
@@ -173,7 +214,13 @@ https://sourceware.org/glibc/wiki/Glibc%20Timeline
   format specifier that uses an <apostrophe> (enable grouping) and a
   minimum width specifier - potential buffer overflow
 
+2.39 | vulnerable na https://ubuntu.com/security/CVE-2024-2961 (iconv)
 2.43 | fastbins are kill
+
+pdb is the symbols file
+
+PE so windows portable executabli - na linuxu glej "pev"
+-> peres -v program.exe | awk '{print $3}'
 
 https://oneraynyday.github.io/dev/2020/05/03/Analyzing-The-Simplest-C++-Program/
 
@@ -189,3 +236,23 @@ open naredi nov file descriptor, ki je literally samo incremental od 3 naprej (y
 
 fopen / fread / fwrite -> FILE*
 
+srop (system rop) in sfop (segfault oriented) obstaja apparently
+
+hidden permission je setuid (za sudo npr.) ki naredi da se zalaufa kot njegov owner
+
+bpftrace - useful tracing and debugging tool
+
+inotify - trace-anje za file evente
+
+https://youtu.be/3F5icGjDWfg?t=1404 --- LD_PRELOAD, druge env variable: ephemeral file, preko /proc/self/fd !!!!!
+
+LD_DEBUG: https://youtu.be/3F5icGjDWfg?t=1597 -- debug the dynamic linker in glibc (since 2.1)
+
+cron je zelo permissive, dovoli \t namest presledka za delimiterje, /etc/cron.d/hax tud dela
+
+you execute a directory when you cd into it! (you need x permissions to cd)
+-> in vsi parenti morajo met +x
+
+start qemu virtual network: sudo virsh net-start default
+
+vsi terminali so shite in ti ne dovoljo pastat dolgih stvari

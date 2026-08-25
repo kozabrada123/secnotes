@@ -154,6 +154,9 @@ https://www.certkit.io/tools/ct-logs/?query=kralj.io
 
 also, v eni minute gre gor -> takoj si fucked, če maš unconfigured admin panel
 
+irl probably ni applicable ravno zarad certov, ampak maš lahko
+virtualhoste k samo glede na host header routajo -> subdomain enumeration
+
 - DNS-PERSIST-01 - nov challenge za letsencrypt
 
 Ip info / geolocation / whatever
@@ -171,3 +174,12 @@ https://github.com/bitquark/shortscan - windscribe
 wordpress - https://hacktricks.wiki/en/network-services-pentesting/pentesting-web/wordpress.html && https://github.com/pentesterzone/pentest-checklists/blob/master/CMS/WordPress-Checklist.md
 https://github.com/wpscanteam/wpscan/
 
+springboot - misconfig - https://youtu.be/5VlhsT5Kbsk?t=1364 // heapdump endpoint exposed
+
+ffuf / dirbuster / feroxbuster
+
+formost - recover badly deleted data
+
+social engineering toolkit
+
+včasih (še posebi za deprecated stvari) se domene za dns nameserverje expirajo, in lahko delaš dns hijacking
