@@ -3,14 +3,19 @@ pimp out your exploits scripts: https://emojicombos.com/ -- yes, this deserved t
 https://syscall.sh/
 
 ldd - view versions of ld and glibc - asterisk, view where they are linked to, not the version!
+    - also, to kaže dependencije depencencijev, tko da ne bo nujno required od osnovnega elfa, ampak lahko je 
+      dependency od depencija
 
 pwninit - use the correct libc
 
-objdump -d <stuff>
+objdump -d <stuff> (-M intel!)
 
 (objdump --disassembler-color=on -M intel -d $@)
 
+also readelf
+
 zalaufi ropr!!! (also, one_gadget)
+- GOT address of libc means the start of the RW section -- https://david942j.blogspot.com/2017/02/project-one-gadget-in-glibc.html
 
 https://dogbolt.org/
 
@@ -18,6 +23,7 @@ pwn template (tudi iz dockerfila vzame), pwninit ti zalaufa patchelf
 
 pwndbg
 - x/n -> prints n things -> if you have e.g. x interpreter and that doesn't work (it thinks the value is an addr or sth), * and & work (x &interpreter)
+- p(/x)
 - tele
 - ni
 - si
@@ -33,6 +39,15 @@ pwndbg
 - vis
 - break (info breakpoints / del <num>)
 - run (can have redirects (<))
+
+- file
+- target remote localhost:1234
+
+gef tudi obstaja
+
+gdb-multiarch
+
+in na tej temi tudi vagd
 
 -- runtime
 
@@ -77,9 +92,11 @@ stack "frame":
 
 wonky ass arhitekture: qemu
 - npr. qemu-riscv32-static <myapp> in ga lepo zalaufa
-- debug: qemu-riscv32-static <myapp> -g <port> (čaka za gdb connection)
+- debug: qemu-riscv32-static -g <port> <myapp> (čaka za gdb connection)
     - gdb -ex "target remote localhost:<port>" -ex "set architecture riscv:rv32" -ex "file <myapp>"
         - -ex : laufi to komando
+
+- če ne zna najdt librarijev: export QEMU_LD_PREFIX=/usr/aarch64-linux-gnu npr
 
 also, 8 byte stvari so 8 byte aligned v memoriju
 
@@ -95,6 +112,7 @@ ASLR obstaja
 ---> tcache je na začetk heap-a (tcache_perthread_struct)
 
 heap: shellphish/how2heap !!
+https://github.com/DhavalKapil/heap-exploitation
 
 disable ASLR
 echo 0 | sudo tee /proc/sys/kernel/randomize_va_space
@@ -116,8 +134,15 @@ stack canary:
 .data - raw stringi
 .bss - globalne variable
 
+brunners takeaway - anon RW before libc can be VERY useful in rare cases
+sometimes calling main again is very useful - first try leak stuff, second try uses the leaks!
+
+if you have arbitrary file read --> /proc/self!!!! /proc/self/fd, /proc/self/maps, ...
+
 test eax eax -> ne nastavi registrov, samo zero flag
 -> npr. jeq potem, če je eax = 0
+
+xor eax eax cleara rax; vse 32 bitne inštrukcije tudi zero-ajo višje dele 64-bitnih registrov
 
 če delaš artitmetiko s pointerji je to probably array offset
 -> + mul, če je pa samo + je pa struct offset, sej nisi stupid
@@ -256,3 +281,13 @@ you execute a directory when you cd into it! (you need x permissions to cd)
 start qemu virtual network: sudo virsh net-start default
 
 vsi terminali so shite in ti ne dovoljo pastat dolgih stvari
+
+C bitlags: https://github.com/jhynes94/C_BitPacking
+
+i386
+- glej sys v - **argumenti so pushed na stack v reverse orderju - prvi pop je prvi arg itd.**
+    - ravno zato ima zelo rad mov [esp], ... chaine!
+- libc želi met v rbx startn address od GOTa da karkoli dela
+    - glej: https://github.com/david942j/one_gadget/issues/130 oz https://david942j.blogspot.com/2017/02/project-one-gadget-in-glibc.html (Data access method)
+        - tldr $ readelf -d libc.so.6 | grep PLTGOT
+               0x00000003 (PLTGOT)                     0x1b2000
