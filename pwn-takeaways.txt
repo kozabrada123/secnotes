@@ -1,6 +1,8 @@
 pimp out your exploits scripts: https://emojicombos.com/ -- yes, this deserved to be at the very top
 
-https://syscall.sh/
+>> https://ir0nstone.gitbook.io/notes <<
+
+https://syscall.sh/ <-- to niti ni tolk pomembn
 
 ldd - view versions of ld and glibc - asterisk, view where they are linked to, not the version!
     - also, to kaže dependencije depencencijev, tko da ne bo nujno required od osnovnega elfa, ampak lahko je 
@@ -8,7 +10,7 @@ ldd - view versions of ld and glibc - asterisk, view where they are linked to, n
 
 pwninit - use the correct libc
 
-objdump -d <stuff> (-M intel!)
+objdump -d <stuff>
 
 (objdump --disassembler-color=on -M intel -d $@)
 
@@ -17,16 +19,19 @@ also readelf
 zalaufi ropr!!! (also, one_gadget)
 - GOT address of libc means the start of the RW section -- https://david942j.blogspot.com/2017/02/project-one-gadget-in-glibc.html
 
-https://dogbolt.org/
+-- also also pwntools also zna iskat gadgete - https://docs.pwntools.com/en/stable/rop/rop.html
+
+https://dogbolt.org/ (decomp) in https://godbolt.org/ (comp)
 
 pwn template (tudi iz dockerfila vzame), pwninit ti zalaufa patchelf
+- sicer pa dockerfile pač docker exec -it <container> bash in potem docker cp <container>:/path ./path
 
 pwndbg
 - x/n -> prints n things -> if you have e.g. x interpreter and that doesn't work (it thinks the value is an addr or sth), * and & work (x &interpreter)
 - p(/x)
 - tele
-- ni
-- si
+- ni (next instruction)
+- si (step into)
 - finish (go until ret of current function)
 - start -> very useful when you have no main
 - set follow-fork-mode child / parent --- za forke
@@ -42,14 +47,16 @@ pwndbg
 
 - file
 - target remote localhost:1234
+- attach <pid>
+
+- info functions
+- show npr. architecture, set npr. architecture i386
 
 gef tudi obstaja
 
-gdb-multiarch
-
 in na tej temi tudi vagd
 
--- runtime
+-- random stvar:
 
     (cat solve/solve.bin; cat) | ./app --- stdin je še vedno odprt
 
@@ -90,9 +97,9 @@ stack "frame":
 [rbp]
 [return address]
 
-wonky ass arhitekture: qemu
+wonky ass arhitekture: qemu, gdb-multiarch
 - npr. qemu-riscv32-static <myapp> in ga lepo zalaufa
-- debug: qemu-riscv32-static -g <port> <myapp> (čaka za gdb connection)
+- debug: qemu-riscv32-static -g <port> <myapp> (čaka za gdb connection) -- sicer sta tud -s (odpre gdbserver na 1234) in -S (čaka na connection) (če tadva moraš oba dat)
     - gdb -ex "target remote localhost:<port>" -ex "set architecture riscv:rv32" -ex "file <myapp>"
         - -ex : laufi to komando
 
@@ -105,32 +112,41 @@ ASLR obstaja
 - PIE -> ASLRamo še binary; če ne, je na statični poziciji
 --> leak libcja prek heapa: unsorted bin v main arena
 
----> heap: poleg free hooka pa vsega tega, delaš tud ROP prek stacka
----> also: majhni bini so O(n) checked, unsorted niso!! -> samo ne freejej dvakrat zapored istega
----> also z overflowom lahko nastaviš size, overlapping chunki
----> dost velk chunk: noter narediš šeen fake chunk, potem daš nek pointer na njega v binih
----> tcache je na začetk heap-a (tcache_perthread_struct)
-
-heap: shellphish/how2heap !!
-https://github.com/DhavalKapil/heap-exploitation
-
 disable ASLR
 echo 0 | sudo tee /proc/sys/kernel/randomize_va_space
 
 enable ASLR
 echo 2 | sudo tee /proc/sys/kernel/randomize_va_space
 
+če daš gdb <app> bo vedno mel aslr off
+pol pa pač attachaš, sicer pa set disable-randomization off
+
+heap:
+---> __free_hook in __malloc_hook, nastaviš na function in se bo klical ob freeju in mallocu z istimi argi
+    -> npr. __free_hook = system, free(moj_string_k_ma_bin_sh_noter)
+---> poleg hookov delaš tud ROP prek stacka lahko
+---> also: majhni bini so O(n) checked, unsorted niso!! -> samo ne freejej dvakrat zapored istega
+---> also z overflowom lahko nastaviš size, overlapping chunki
+---> dost velk chunk: noter narediš šeen fake chunk, potem daš nek pointer na njega v binih
+---> tcache je na začetk heap-a (tcache_perthread_struct)
+    -> v dost stari (<2.42 afaik) se alocira takoj ob prvem mallocu
+    -> v 2.42 afaik se alocira ob dovolj manjhnem mallocu
+    -> v 2.43 afaik se alocira 
+
+shellphish/how2heap !!
+https://github.com/DhavalKapil/heap-exploitation
+
 default kaj naredi gcc (a so canariji by default, kdaj, ...) nastavijo distroji; nekateri (khm khm debian) še vedno ne uporablajo canarijev
 
 stack canary:
-- na stack je pushan nek random thingy iz kernel thread local space-a, kernel ga zgenerira, ampak ni per function unique
+- na stack je pushan nek random thingy iz kernel thread local space-a, kernel ga zgenerira, ampak je samo *per process* unique
 - 7 random bytov + null da ne moreš leakat
 - to se na konc funkcije prever, če ni ok -> bad things
 - -fstack-protector-strong, -fno-stack-protector
 
 --> kako beatat? leak / brute force
 
-.text - veš
+.text - koda
 .data - raw stringi
 .bss - globalne variable
 
@@ -183,8 +199,6 @@ direct printf je itak amazing: https://github.com/whatsyourask/basics-of-pwn/blo
 https://docs.pwntools.com/en/stable/fmtstr.html
 
 https://www.ired.team/offensive-security/code-injection-process-injection/binary-exploitation/return-to-libc-ret2libc
-
-https://ir0nstone.gitbook.io/notes
 
 https://www.felixcloutier.com/x86/$instruction
 
