@@ -245,11 +245,12 @@ https://www.ired.team/offensive-security/code-injection-process-injection/binary
 - dost velk chunk: noter narediš šeen fake chunk, potem daš nek pointer na njega v binih
 - tcache je na začetk heap-a (tcache\_perthread\_struct)
     - v dost stari (\<2.42 afaik) se alocira takoj ob prvem mallocu
-    - v 2.42 afaik se alocira ob dovolj manjhnem mallocu
-    - v 2.43 afaik se alocira 
+    - v 2.42 afaik se alocira ob dovolj majhnem mallocu
+    - v 2.43 afaik se alocira ob dovolj majhnem free-ju (actually ko ga rabimo)
 
-shellphish/how2heap !!
-https://github.com/DhavalKapil/heap-exploitation
+[shellphish/how2heap](https://github.com/shellphish/how2heap) !!
+
+[https://github.com/DhavalKapil/heap-exploitation](https://github.com/shellphish/how2heap)
 
 ## glibc version thingies
 
@@ -442,7 +443,7 @@ open naredi nov file descriptor, ki je literally samo incremental od 3 naprej (y
 
 fopen / fread / fwrite -> FILE*
 
-srop (system rop) in [sfop (segfault oriented)](https://media.defcon.org/DEF%20CON%2034/DEF%20CON%2034%20presentations/DEF%20CON%2034%20presentations/DEF%20CON%2034%20-%20Marcos%20Bajo%2C%20Ritvik%20Goyal%20-%20Crashing%20the%20Party%20Pwning%20Control-Flow%20Integrity%20with%20Segmentation%20Fault-Oriented%20Programming%20-%20Crashingthe.pdf) obstaja apparently
+[srop (sigreturn oriented)](https://hacktricks.wiki/en/binary-exploitation/rop-return-oriented-programing/srop-sigreturn-oriented-programming/index.html) in [sfop (segfault oriented)](https://media.defcon.org/DEF%20CON%2034/DEF%20CON%2034%20presentations/DEF%20CON%2034%20presentations/DEF%20CON%2034%20-%20Marcos%20Bajo%2C%20Ritvik%20Goyal%20-%20Crashing%20the%20Party%20Pwning%20Control-Flow%20Integrity%20with%20Segmentation%20Fault-Oriented%20Programming%20-%20Crashingthe.pdf) obstaja apparently
 
 tudi [fsop](https://niftic.ca/posts/fsop/) - file system oriented
 
@@ -468,7 +469,7 @@ vsi terminali so shite in ti ne dovoljo pastat dolgih stvari
 C bitlags: https://github.com/jhynes94/C\_BitPacking
 
 ## i386
-- glej sys v - **argumenti so pushed na stack v reverse orderju - prvi pop je prvi arg itd.**
+- glej sys v abi - **argumenti so pushed na stack v reverse orderju - prvi pop je prvi arg itd.**
     - ravno zato ima zelo rad mov \[esp], ... chaine!
 - libc želi met v ebx startn address od GOTa da karkoli dela
     - glej: https://github.com/david942j/one\_gadget/issues/130 oz https://david942j.blogspot.com/2017/02/project-one-gadget-in-glibc.html (Data access method)
