@@ -36,6 +36,8 @@ sicer za decomp [ida](https://hexrays.su/) / [ghidra](https://github.com/nationa
 pwn template (tudi iz dockerfila vzame), pwninit ti zalaufa patchelf
 - sicer pa dockerfile pač docker exec -it \<container> bash in potem docker cp \<container>:/path ./path
 
+checksec !!!
+
 [pwndbg](https://pwndbg.re/stable/)
 - x/n -> prints n things -> if you have e.g. x interpreter and that doesn't work (it thinks the value is an addr or sth), * and & work (x &interpreter)
 - p(/x)
@@ -90,8 +92,6 @@ RBP, RSP, RIP
 --> RIP relative je probaby v bss-ju
 
 man x86-\<sth>
-
-checksec !!!
 
 če maš system("/bin/sh") si že zmagal(a)
     -> system(neki) naredi sh -c "neki"
