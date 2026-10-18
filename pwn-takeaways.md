@@ -8,7 +8,7 @@ Some boards have a voltage regulator, where you can just wire your own thingy on
 
 do not underestimate fuzzing, especially parsers
 
-rev c# - dotpeek
+rev c# - [dotpeek](https://www.jetbrains.com/decompiler/) -- na tej temi [ysoserial.net](https://github.com/pwntester/ysoserial.net) in [ysonet](https://github.com/irsdl/ysonet)
 
 ldd - view versions of ld and glibc - asterisk, view where they are linked to, not the version!
     - also, to kaže dependencije depencencijev, tko da ne bo nujno required od osnovnega elfa, ampak lahko je 
@@ -29,10 +29,14 @@ zalaufi ropr!!! (also, one\_gadget)
 
 https://dogbolt.org/ (decomp) in https://godbolt.org/ (comp)
 
+sicer za decomp [ida](https://hexrays.su/) / [ghidra](https://github.com/nationalsecurityagency/ghidra), [angr](https://angr.io/) bi znal bit uporaben še posebi za kkšn rust
+
+[pwntoolse](https://docs.pwntools.com/en/stable/) že poznamo
+
 pwn template (tudi iz dockerfila vzame), pwninit ti zalaufa patchelf
 - sicer pa dockerfile pač docker exec -it \<container> bash in potem docker cp \<container>:/path ./path
 
-pwndbg
+[pwndbg](https://pwndbg.re/stable/)
 - x/n -> prints n things -> if you have e.g. x interpreter and that doesn't work (it thinks the value is an addr or sth), * and & work (x &interpreter)
 - p(/x)
 - tele
@@ -58,9 +62,9 @@ pwndbg
 - info functions
 - show npr. architecture, set npr. architecture i386
 
-gef tudi obstaja
+[gef](https://github.com/bata24/gef) tudi obstaja
 
-in na tej temi tudi vagd
+in na tej temi tudi [vagd](https://github.com/gfelber/vagd) in [docker-dbg](https://github.com/junron/docker-dbg/tree/main)
 
 -- random stvar:
 
