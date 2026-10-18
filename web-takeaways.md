@@ -37,9 +37,11 @@ XXE (XML eXternal Entities) injection is funny
 
 XML escapes - CDATA - https://www.liquid-technologies.com/Reference/Glossary/XML_EscapingData.html#i-heading-cdata - https://www.tutorialspoint.com/xml/xml_cdata_sections.html
 
+```
     <![CDATA[
      characters with markup
     ]]>
+```
 
 parseInt parses anything as an int, if given a float, will convert to string and then to int, so 1e-9 -> 1
 
@@ -50,9 +52,11 @@ parseInt parses anything as an int, if given a float, will convert to string and
 '">
 
 XSS sources:
+```
 <img src=x onerror="myxxsjs">
 <svg onload=alert(1)>
 <body onload="alert('XSS')">
+```
 https://html5sec.org/
 https://github.com/0xsobky/HackVault/wiki/Unleashing-an-Ultimate-XSS-Polyglot
 
@@ -61,38 +65,37 @@ https://medium.com/@estheresom17/breaking-pickle-how-i-got-remote-code-execution
 https://github.com/twtrubiks/python-notes/blob/master/__reduce__tutorial.py
 
 bash
-$(...) -> execution
-${...} -> substitution
+`$(...)` -> execution
+`${...}` -> substitution
 
 dig ---> actually good dns lookup
 
-Java template injection: ${7*7}
+Java template injection: `${7*7}`
 
+```python
 >>> def a():
 ...     import subprocess
 ...     return subprocess.run(['cat', 'flag.txt'], capture_output = True, text = True)
+```
 
 Locked down sql injections:
 
+```sql
 SELECT name FROM ... {injection} -> + UNION SELECT flag FROM ...
+```
 or just use LIKE for byte per byte
 
 NoSQL:
-injecting '>', '<', '>=', '<=' -> greater than null, everything is greater than null
+injecting `>`, `<`, `>=`, `<=` -> greater than null, everything is greater than null
 
-Hardware fault injection: turn the power down for e.g. one specific instruction to skip it
-
-Some boards have a voltage regulator, where you can just wire your own thingy on to trick it
-
-seq 1 10 | xargs -n 1 -P 8 script-to-run.sh input/ output/
+race conditions:
+`seq 1 10 | xargs -n 1 -P 8 script-to-run.sh input/ output/`
 
 netexec
 
 windows server 2016 zerologon exploit
 
 winchecksec
-
-do not underestimate fuzzing, especially parsers
 
 js sourcemaps for reverse engineering
 
@@ -114,9 +117,9 @@ hashcat rules:
 - https://github.com/cyberspacekittens/Hob0Rules
 - https://github.com/NotSoSecure/password_cracking_rules
 
-hashcat -w 3 -m <format> -o hashes.cracked ./hashes.txt
+`hashcat -w 3 -m <format> -o hashes.cracked ./hashes.txt`
 
-hashcat -a 0 -m 16500 <jwt> <wordlist>
+`hashcat -a 0 -m 16500 <jwt> <wordlist>`
 
 active MITM beata diffie-helman
 
@@ -165,9 +168,7 @@ https://ipinfo.io/
 useful tools
 https://bgp.he.net/
 
-| wc -l # count lines - wc counts newlines, spaces, ...
-
-rev c# - dotpeek
+`| wc -l` # count lines - wc counts newlines, spaces, ...
 
 https://github.com/bitquark/shortscan - windscribe
 
