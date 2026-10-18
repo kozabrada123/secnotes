@@ -1,5 +1,7 @@
 \>\> https://ir0nstone.gitbook.io/notes <<
 
+\>https://github.com/ljagiello/ctf-skills/tree/main/ctf-pwn<
+
 https://syscall.sh/ \<-- to niti ni tolk pomembn
 
 Hardware fault injection: turn the power down for e.g. one specific instruction to skip it
@@ -54,14 +56,16 @@ checksec !!!
 - stack
 - bins
 - vis
+- tls
 - break (info breakpoints / del \<num>)
 - run (can have redirects (\<))
 
 - file
 - target remote localhost:1234
 - attach \<pid>
+- thread \<cifra>
 
-- info functions
+- info npr. functions
 - show npr. architecture, set npr. architecture i386
 
 [gef](https://github.com/bata24/gef) tudi obstaja
@@ -79,7 +83,7 @@ in na tej temi tudi [vagd](https://github.com/gfelber/vagd) in [docker-dbg](http
 
 --
 
-https://wiki.osdev.org/System\_V\_ABI
+https://wiki.osdev.org/System_V_ABI
 - return value is in RAX
 - args: rdi, rsi, rdx, rcx, r8, r9
 (destination, source)
@@ -92,6 +96,8 @@ RBP, RSP, RIP
 --> RIP relative je probaby v bss-ju
 
 man x86-\<sth>
+
+https://www.felixcloutier.com/x86/$instruction
 
 če maš system("/bin/sh") si že zmagal(a)
     -> system(neki) naredi sh -c "neki"
@@ -132,29 +138,13 @@ echo 2 | sudo tee /proc/sys/kernel/randomize\_va\_space
 če daš gdb \<app> bo vedno mel aslr off
 pol pa pač attachaš, sicer pa set disable-randomization off
 
-heap:
-- \_\_free\_hook in \_\_malloc\_hook, nastaviš na function in se bo klical ob freeju in mallocu z istimi argi
-    -> npr. \_\_free\_hook = system, free(moj\_string\_k\_ma\_bin\_sh\_noter)
-- poleg hookov delaš tud ROP prek stacka lahko
-- leak libcja prek heapa: unsorted bin v main arena
-- also: majhni bini so O(n) checked, unsorted niso!! -> samo ne freejej dvakrat zapored istega
-- also z overflowom lahko nastaviš size, overlapping chunki
-- dost velk chunk: noter narediš šeen fake chunk, potem daš nek pointer na njega v binih
-- tcache je na začetk heap-a (tcache\_perthread\_struct)
-    - v dost stari (\<2.42 afaik) se alocira takoj ob prvem mallocu
-    - v 2.42 afaik se alocira ob dovolj manjhnem mallocu
-    - v 2.43 afaik se alocira 
-
-shellphish/how2heap !!
-https://github.com/DhavalKapil/heap-exploitation
-
 default kaj naredi gcc (a so canariji by default, kdaj, ...) nastavijo distroji; nekateri (khm khm debian) še vedno ne uporablajo canarijev
 
 stack canary:
-- na stack je pushan nek random thingy iz kernel-set thread local space-a (1), kernel ga zgenerira, ampak je samo *per process* unique
-- zgleda kot 
+- na stack je pushan nek random thingy iz kernel-set thread local space-a (note: 🦑), kernel ga zgenerira, ampak je samo *per process* unique
+- uporaba zgleda kot 
 ```asm
-začtek:
+začetek:
 mov    rax,QWORD PTR fs:0x28
 mov    QWORD PTR [rbp-0x8],rax
 
@@ -169,22 +159,7 @@ ret
 - 7 random bytov + null da ne moreš leakat
 - to se na konc funkcije prever, če ni ok -> bad things
 - -fstack-protector-strong, -fno-stack-protector
-
-1 - to je thread local storage, ki je tist goofy RW anonymous page mappan direktno pred libc
--> če maš thread\_local variable bodo (usually? citation needed?) direktno pred (0x7c vs 0xa4)
--> veliki malloci, AKA mmap(MAP\_ANONYMOUS), so dani direktno pred ta page
-    -> če maš tm privitive lahko overridaš canary in thread local stvari
-        -> pred tvojimi thread local (ja, isto če maš v velikem mallocu oob) so juicy libc stvari (main arena, tcache)
-
---> kako beatat canary? usually leak, brute force questionably
-
-- .text - koda
-- .rodata - raw stringi
-- .bss - globalne variable
-
-brunners takeaways
-- anon RW (thas the TLS) before libc can be VERY useful in rare cases
-- sometimes calling main again is very useful - first try leak stuff, second try uses the leaks!
+- kako beatat canary? usually leak, brute force questionably
 
 if you have arbitrary file read --> /proc/self!!!! /proc/self/fd, /proc/self/maps, ...
 
@@ -200,14 +175,21 @@ word = 2 bytes
 
 floati: https://float.exposed/0x0000
 
-\_\_ctype\_b\_loc --> glej https://stackoverflow.com/questions/37702434/ctype-b-loc-what-is-its-purpose, uporablen je za is\_uppercase, lowercase, alphanumeric etc za chare; 0x2000 je is\_blank
-
 ROP samo pomen da si controllov return address, skoču na "gadget" -> snippet z ret-om
 --> as mentioned before, stack more bit 16-bit aligned, če nočeš SIGSEGV ob system -> gadget z ret-om
 
 NX samo pomen da sta stack in heap no execute
 
-libc
+endbr64 - basically nop, ideja je da cpu checka, da si actually jumpov na ok lokacijo, ampak ni nikjer implemented :)))
+- IBT - indirect branch tracking, na nekaterih intel / amd
+
+SHSTK - shadow stack - ločen stack samo za ret addre, prepreči ret hijacking -> samo Intel!
+
+note da ima mips recimo (pa druge arhitekture) precej bl shit protectione
+
+ofc ne `free` ne stack pop ne karkoli actually ne deleta memorija, isto gre za stack variable ki niso initialized, `malloc` ti returna stare podatke..
+
+## libc
 - GOT (global offset table) -> libc addressi
     - napolne po actual callu funkcije
         - partial relro: pred .bss
@@ -222,6 +204,14 @@ libc
 
 - stare verzije: \_\_malloc\_hook in \_\_free\_hook na system za direct rce
 
+- don't know libc version? https://libc.rip/
+
+- libc source: https://elixir.bootlin.com/glibc/glibc-2.39/source/iconv
+
+- if you can run arbitrary asm, you don't even need libc! execve syscall (also, you can do environment = null and args = null)
+
+\_\_ctype\_b\_loc --> glej https://stackoverflow.com/questions/37702434/ctype-b-loc-what-is-its-purpose, uporablen je za is\_uppercase, lowercase, alphanumeric etc za chare; 0x2000 je is\_blank
+
 direct printf je itak amazing: https://github.com/whatsyourask/basics-of-pwn/blob/main/content/format-string/format-string.md
 %number$x
 
@@ -235,28 +225,28 @@ https://docs.pwntools.com/en/stable/fmtstr.html
 
 https://www.ired.team/offensive-security/code-injection-process-injection/binary-exploitation/return-to-libc-ret2libc
 
-https://www.felixcloutier.com/x86/$instruction
+## heap
+- glej [ir0nstone](https://ir0nstone.gitbook.io/notes)
+- \_\_free\_hook in \_\_malloc\_hook, nastaviš na function in se bo klical ob freeju in mallocu z istimi argi
+    -> npr. \_\_free\_hook = system, free(moj\_string\_k\_ma\_bin\_sh\_noter)
+- poleg hookov delaš tud ROP prek stacka lahko
+- leak libcja prek heapa: unsorted bin v main arena
+- also: majhni bini so O(n) checked, unsorted niso!! -> samo ne freejej dvakrat zapored istega
+- also z overflowom lahko nastaviš size, overlapping chunki
+- dost velk chunk: noter narediš šeen fake chunk, potem daš nek pointer na njega v binih
+- tcache je na začetk heap-a (tcache\_perthread\_struct)
+    - v dost stari (\<2.42 afaik) se alocira takoj ob prvem mallocu
+    - v 2.42 afaik se alocira ob dovolj manjhnem mallocu
+    - v 2.43 afaik se alocira 
 
-endbr64 - basically nop, ideja je da cpu checka, da si actually jumpov na ok lokacijo, ampak ni nikjer implemented :)))
-- IBT - indirect branch tracking, na nekaterih intel / amd
+shellphish/how2heap !!
+https://github.com/DhavalKapil/heap-exploitation
 
-SHSTK - shadow stack - ločen stack samo za ret addre, prepreči ret hijacking -> samo Intel!
+## glibc version thingies
 
-če pozab initializat kkšn field: star chunk ponovno mallocan, podatki ostanejo :)))
+- tega mostly ne rabš, razen na hooke pa fastbine, unlikely je glibc cve-je exploitat
 
-don't know libc version? https://libc.rip/
-
-libc source: https://elixir.bootlin.com/glibc/glibc-2.39/source/iconv
-
-if you can run arbitrary asm, you don't even need libc! execve syscall (also, you can do environment = null and args = null)
-
-ofc ne `free` ne stack pop ne karkoli actually ne deleta memorija, isto gre za stack variable ki niso initialized, `malloc` ti returna stare podatke..
-
-note da ima mips recimo (pa druge arhitekture) precej bl shit protectione
-
-tega mostly ne rabš, razen na hooke pa fastbine, unlikely je glibc cve-je exploitat
---- 
-
+---
 glibc!
 https://sourceware.org/glibc/wiki/Glibc%20Timeline
 
@@ -307,6 +297,125 @@ https://sourceware.org/glibc/wiki/Glibc%20Timeline
 
 pdb is the symbols file
 
+## TLS (🦑)
+- 🦑 - to je thread local storage (TLS) od main threada, ki je tist goofy RW anonymous page mappan direktno pred libc
+- **razen za zelo crazy challenge *ni zelo pomembno za pwn*! rajši prej heap pa vse ostalo** - to je podrobno opisan zaradi avtističnosti in ker sta heap in stack drugje lepše dokumentirana (ir0nstone!)
+- pwndbg commanda tls
+- veliki malloci, AKA mmap(MAP\_ANONYMOUS), so dani direktno pred ta page
+    - če maš tm primitive lahko overridaš canary in thread local stvari
+        - tam so juicy libc stvari (main arena, tcache)
+        - also, tam so tud function pointerji (tls dtors aka destructors (non-trivial destructorji za thread local C++ classe), ki se kličejo ob exit()u - `__call_tls_dtors` in `dtor_list`, ki je [dtor_list](https://elixir.bootlin.com/glibc/glibc-2.42/source/stdlib/cxa_thread_atexit_impl.c#L82)* (singly linked list))
+            - xor-ani so s pointer_guardom in ror-jani, ta guard je direktno po stack canaryjem ([bootlin](https://elixir.bootlin.com/glibc/glibc-2.42/source/sysdeps/x86_64/nptl/tls.h#L42) - tcbhead_t = thread control block head)
+            - glej https://github.com/ljagiello/ctf-skills/blob/main/ctf-pwn/advanced-exploits-2.md#tls-destructor-overwrite-for-rce-via-__call_tls_dtors
+
+- layout (ja, vir je clanker):
+```
+ high addresses
+ ┌────────────────────────────────────────────┐
+ │ rest of struct pthread                     │  tid, cancel state, robust list,
+ │                                            │  specific[] (pthread_setspecific), ...
+ ├────────────────────────────────────────────┤
+ │ tcbhead_t (first member of struct pthread) │
+ │   +0x00  tcb  (self-pointer)               │ ◄── $fs_base = thread pointer (TP)
+ │   +0x08  dtv  ─────────────────────────────┼──► dtv[] (see below)
+ │   +0x10  self (THREAD_SELF / pthread_self) │
+ │   +0x18  multiple_threads                  │
+ │   +0x1c  gscope_flag                       │
+ │   +0x20  sysinfo                           │
+ │   +0x28  stack_guard   (stack canary)      │  $fs:0x28
+ │   +0x30  pointer_guard (PTR_MANGLE key)    │  $fs:0x30
+ │   ...    feature_1, shadow-stack, padding  │
+ ├────────────────────────────────────────────┤ ◄── $fs:0
+ │ module 1: YOUR executable (.tdata + .tbss) │  $fs:-N, fixed offset
+ ├────────────────────────────────────────────┤
+ │ module 2..k: libc.so.6, libm, other libs   │  libc's errno, tcache ptr,
+ │   loaded at startup ("static TLS")         │  thread_arena, ctype/locale pointers, ...
+ ├────────────────────────────────────────────┤
+ │ static TLS surplus (small spare area)      │  for dlopen'd libs using initial-exec TLS
+ └────────────────────────────────────────────┘
+ low addresses
+```
+
+The dtv (dynamic thread vector) is what __tls_get_addr uses:
+
+- dtv\[-1].counter = number of slots
+- dtv\[0].counter  = generation count
+- dtv\[1].pointer  → module 1 block (inside the static area)
+- dtv\[2].pointer  → module 2 block (e.g. libc)
+- ...
+- dtv\[n].pointer  → malloc'd block for a dlopen'd lib (allocated lazily on first access)
+
+How code reaches each kind of variable (this is why the offsets differ):
+		
+| Variable in                      | TLS model       | Access                                                   |
+|----------------------------------|-----------------|----------------------------------------------------------|
+| Your executable                  | local-exec      | mov fs:-4, $eax, offset known at link time              |
+| libc.so (e.g. errno)             | initial-exec    | load the offset from the GOT (@gottpoff), then %fs:(reg) |
+| Other shared libs, -fPIC default | general-dynamic | call __tls_get_addr, which goes through the dtv          |
+| Library loaded by dlopen         | general-dynamic | same, with a dynamically allocated block                 |
+
+Za npr. `__thread int x;` je `&x` = `$fs_base - neka_konstanta`
+
+### več threadov
+
+`pthread_create` mmapa za vsak thread nov anon RW block (spet, tik pred TLS!):
+
+```
+ high ┌──────────────────────────────┐ ◄── mmap end
+      │ struct pthread (tcbhead_t    │ ◄── this thread's $fs_base
+      │   is its first member)       │
+      ├──────────────────────────────┤
+      │ static TLS: exe + libc +     │  size = _dl_tls_static_size,
+      │ startup libs + surplus       │  fixed for ALL threads
+      ├──────────────────────────────┤ ◄── initial stack pointer
+      │ thread stack (grows down)    │
+      ├──────────────────────────────┤
+ low  │ guard page (PROT_NONE)       │
+      └──────────────────────────────┘
+```
+
+## segmenti ELFa
+- readelf -l \<main>
+```
+  Segment Sections...
+   00
+   01     .interp
+   02     .note.gnu.build-id .interp .gnu.hash .dynsym .dynstr .gnu.version .gnu.version_r .rela.dyn .rela.plt
+   03     .init .plt .plt.got .text .fini
+   04     .rodata .eh_frame_hdr .eh_frame .note.gnu.property .note.ABI-tag
+   05     .tdata .init_array .fini_array .dynamic .got .got.plt .data .bss
+   06     .dynamic
+   07     .note.gnu.build-id
+   08     .note.gnu.property
+   09     .note.ABI-tag
+   10     .tdata
+   11     .note.gnu.property
+   12     .eh_frame_hdr
+   13
+   14     .tdata .init_array .fini_array .dynamic .got
+```
+- segment 2 so R headerji in linking metadata
+- segment 3 je RX koda
+- segment 4 so R podatki
+- segment 5 so RW podatki
+
+- .text - koda od programa
+    - .plt in .plt.got so stubi za shared librarije (so-je)
+    - .init in .fini so kratke startup in shutdown stvari
+
+- .rodata - raw stringi
+- .bss - globalne variable
+    - .data so initialized globalne, .bss so zero-initialized (aka ne v fajlu), 
+    - .got in .got.plt
+    - .init_array in .fini_array so arraji constructor in destructor function pointerjev
+    - .dynamic in .tdata so thread-local initial valuji
+
+## random
+
+brunners takeaways
+- TLS before libc can be VERY useful in rare cases (tud sam za shranjevat podatke, če veš samo libc address npr.)
+- sometimes calling main again is very useful - first try leak stuff, second try uses the leaks!
+
 PE so windows portable executabli - na linuxu glej "pev"
 -> peres -v program.exe | awk '{print $3}'
 
@@ -324,7 +433,9 @@ open naredi nov file descriptor, ki je literally samo incremental od 3 naprej (y
 
 fopen / fread / fwrite -> FILE*
 
-srop (system rop) in sfop (segfault oriented) obstaja apparently
+srop (system rop) in [sfop (segfault oriented)](https://media.defcon.org/DEF%20CON%2034/DEF%20CON%2034%20presentations/DEF%20CON%2034%20presentations/DEF%20CON%2034%20-%20Marcos%20Bajo%2C%20Ritvik%20Goyal%20-%20Crashing%20the%20Party%20Pwning%20Control-Flow%20Integrity%20with%20Segmentation%20Fault-Oriented%20Programming%20-%20Crashingthe.pdf) obstaja apparently
+
+tudi [fsop](https://niftic.ca/posts/fsop/) - file system oriented
 
 hidden permission je setuid (za sudo npr.) ki naredi da se zalaufa kot njegov owner
 
@@ -347,7 +458,7 @@ vsi terminali so shite in ti ne dovoljo pastat dolgih stvari
 
 C bitlags: https://github.com/jhynes94/C\_BitPacking
 
-i386
+## i386
 - glej sys v - **argumenti so pushed na stack v reverse orderju - prvi pop je prvi arg itd.**
     - ravno zato ima zelo rad mov \[esp], ... chaine!
 - libc želi met v rbx startn address od GOTa da karkoli dela
