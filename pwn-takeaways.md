@@ -2,7 +2,7 @@
 
 \>https://github.com/ljagiello/ctf-skills/tree/main/ctf-pwn<
 
-https://syscall.sh/ \<-- to niti ni tolk pomembn
+https://syscall.sh/ \<-- to niti ni tolk pomembn (pač kaj naredi in kako se uporablja `syscall` instruction (aka `int 0x80`))
 
 Hardware fault injection: turn the power down for e.g. one specific instruction to skip it
 
@@ -24,7 +24,7 @@ objdump -d \<stuff>
 
 also readelf
 
-zalaufi ropr!!! (also, one\_gadget)
+zalaufi [ropr](https://github.com/Ben-Lichtman/ropr)!!! (also, [one_gadget](https://github.com/david942j/one_gadget)) ((ta najbl klasično orodje - npr. za ctf unplugged ipd. je [ropgadget](https://github.com/jonathansalwan/ropgadget)))
 - GOT address of libc means the start of the RW section -- https://david942j.blogspot.com/2017/02/project-one-gadget-in-glibc.html
 
 -- also also pwntools also zna iskat gadgete - https://docs.pwntools.com/en/stable/rop/rop.html
@@ -164,9 +164,15 @@ ret
 if you have arbitrary file read --> /proc/self!!!! /proc/self/fd, /proc/self/maps, ...
 
 `test eax eax` -> ne nastavi registrov, samo zero flag
--> npr. `jeq` potem, če je `eax = 0`
+- npr. `jeq` potem, če je `eax = 0`
 
 `xor eax eax` cleara rax; vse 32 bitne inštrukcije tudi zero-ajo višje dele 64-bitnih registrov
+
+fino je vedt da je `0x90` 1-byte `nop`
+
+včasih redko bi znalo bit koristno brat https://wiki.osdev.org/X86-64_Instruction_Encoding
+
+in v tej smeri https://gist.github.com/mikesmullin/6259449
 
 če delaš artitmetiko s pointerji je to probably array offset
 -> + mul, če je pa samo + je pa struct offset
@@ -180,10 +186,13 @@ ROP samo pomen da si controllov return address, skoču na "gadget" -> snippet z 
 
 NX samo pomen da sta stack in heap no execute
 
-endbr64 - basically nop, ideja je da cpu checka, da si actually jumpov na ok lokacijo, ampak ni nikjer implemented :)))
-- IBT - indirect branch tracking, na nekaterih intel / amd
+endbr64 - basically nop, ideja je da cpu checka, da si actually jumpov na ok lokacijo, v praksi se redko uporablja
+
+temu se reče IBT - indirect branch tracking, na nekaterih intel / amd (se sicer imenuje drugače)
 
 SHSTK - shadow stack - ločen stack samo za ret addre, prepreči ret hijacking -> samo Intel!
+
+- usually samo predvidevamo da shadow stack ni *actually* vklopljen (ker moraš met še pravi procesor in bogve kaj), če pa probaš na remotu in actually je, pač ROP ne bo delal
 
 note da ima mips recimo (pa druge arhitekture) precej bl shit protectione
 
@@ -400,7 +409,7 @@ Za npr. `__thread int x;` je `&x` = `$fs_base - neka_konstanta`
 - segment 5 so RW podatki
 
 - .text - koda od programa
-    - .plt in .plt.got so stubi za shared librarije (so-je)
+    - .plt in .plt.got so stubi za shared librarije (.so-je)
     - .init in .fini so kratke startup in shutdown stvari
 
 - .rodata - raw stringi
@@ -461,7 +470,11 @@ C bitlags: https://github.com/jhynes94/C\_BitPacking
 ## i386
 - glej sys v - **argumenti so pushed na stack v reverse orderju - prvi pop je prvi arg itd.**
     - ravno zato ima zelo rad mov \[esp], ... chaine!
-- libc želi met v rbx startn address od GOTa da karkoli dela
+- libc želi met v ebx startn address od GOTa da karkoli dela
     - glej: https://github.com/david942j/one\_gadget/issues/130 oz https://david942j.blogspot.com/2017/02/project-one-gadget-in-glibc.html (Data access method)
-        - tldr $ readelf -d libc.so.6 | grep PLTGOT
-               0x00000003 (PLTGOT)                     0x1b2000
+        - tldr:
+
+        ```
+        $ readelf -d libc.so.6 | grep PLTGOT
+        0x00000003 (PLTGOT)                     0x1b2000
+        ```
