@@ -308,7 +308,7 @@ pdb is the symbols file
             - xor-ani so s pointer_guardom in ror-jani, ta guard je direktno po stack canaryjem ([bootlin](https://elixir.bootlin.com/glibc/glibc-2.42/source/sysdeps/x86_64/nptl/tls.h#L42) - tcbhead_t = thread control block head)
             - glej https://github.com/ljagiello/ctf-skills/blob/main/ctf-pwn/advanced-exploits-2.md#tls-destructor-overwrite-for-rce-via-__call_tls_dtors
 
-- layout (ja, vir je clanker):
+- layout za x86 (ja, vir je clanker):
 ```
  high addresses
  ┌────────────────────────────────────────────┐
