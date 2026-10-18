@@ -1,5 +1,5 @@
 
-Jotitng stuff down as I go along
+Joting stuff down as I go along
 
 not my fault if anything is wrong, but please do tell :3
 

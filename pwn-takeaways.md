@@ -1,6 +1,4 @@
-pimp out your exploits scripts: https://emojicombos.com/ -- yes, this deserved to be at the very top
-
->> https://ir0nstone.gitbook.io/notes <<
+\>\> https://ir0nstone.gitbook.io/notes <<
 
 https://syscall.sh/ <-- to niti ni tolk pomembn
 
@@ -139,10 +137,16 @@ https://github.com/DhavalKapil/heap-exploitation
 default kaj naredi gcc (a so canariji by default, kdaj, ...) nastavijo distroji; nekateri (khm khm debian) še vedno ne uporablajo canarijev
 
 stack canary:
-- na stack je pushan nek random thingy iz kernel thread local space-a, kernel ga zgenerira, ampak je samo *per process* unique
+- na stack je pushan nek random thingy iz kernel-set thread local space-a (1), kernel ga zgenerira, ampak je samo *per process* unique
 - 7 random bytov + null da ne moreš leakat
 - to se na konc funkcije prever, če ni ok -> bad things
 - -fstack-protector-strong, -fno-stack-protector
+
+1 - to je thread local storage, ki je tist goofy RW anonymous page mappan direktno pred libc
+-> če maš thread_local variable bodo (usually? citation needed?) direktno pred (0x7c vs 0xa4)
+-> veliki malloci, AKA mmap(MAP_ANONYMOUS), so dani direktno pred ta page
+    -> če maš tm privitive lahko overridaš canary in thread local stvari
+        -> pred tvojimi thread local (ja, isto če maš v velikem mallocu oob) so juicy libc stvari (main arena, tcache)
 
 --> kako beatat? leak / brute force
 
