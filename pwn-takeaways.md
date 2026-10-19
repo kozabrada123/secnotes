@@ -219,24 +219,24 @@ ofc ne `free` ne stack pop ne karkoli actually ne deleta memorija, isto gre za s
 
 - if you can run arbitrary asm, you don't even need libc! execve syscall (also, you can do environment = null and args = null)
 
-\_\_ctype\_b\_loc --> glej [stackoverflow ctype-b-loc-what-is-its-purpose](https://stackoverflow.com/questions/37702434/ctype-b-loc-what-is-its-purpose), uporablen je za is\_uppercase, lowercase, alphanumeric etc. na charih
-- bitmaske se ločijo med little endian in big endian sistemi
-    - (na big endian ali pa če te zanima konkretno): glej ctype.h
-        - `(1 << bit) >> 8` na LE (`(bit) < 8 ? ((1 << (bit)) << 8) : ((1 << (bit)) >> 8)`)
-        - `1 << bit` na BE
-- na navadnem LE so tole maske:
-- 0x100 - [isupper](https://en.cppreference.com/c/string/byte/isupper) (uppercase letter)
-- 0x200 - [islower](https://en.cppreference.com/c/string/byte/islower) (lowercase letter)
-- 0x400 - [isalpha](https://en.cppreference.com/c/string/byte/isalpha) (alphabeteic)
-- 0x800 - [isdigit](https://en.cppreference.com/c/string/byte/isdigit) (decimal digit)
-- 0x1000 - [isxdigit](https://en.cppreference.com/c/string/byte/isxdigit) (hex digit)
-- 0x2000 - [isspace](https://en.cppreference.com/c/string/byte/isspace) (whitespace)
-- 0x4000 - [isprint](https://en.cppreference.com/c/string/byte/isprint) (printable, including space)
-- 0x8000 - [isgraph](https://en.cppreference.com/c/string/byte/isgraph) (printable, excluding space)
-- 0x1 - [isblank](https://en.cppreference.com/c/string/byte/isblank) (space / tab)
-- 0x2 - [iscntrl](https://en.cppreference.com/c/string/byte/iscntrl) (control character)
-- 0x4 - [ispunct](https://en.cppreference.com/c/string/byte/ispunct) (punctuation)
-- 0x8 - [isalnum](https://en.cppreference.com/c/string/byte/isalnum) (alphanumeric)
+- \_\_ctype\_b\_loc --> glej [stackoverflow/ctype-b-loc-what-is-its-purpose](https://stackoverflow.com/questions/37702434/ctype-b-loc-what-is-its-purpose), uporablen je za is\_uppercase, lowercase, alphanumeric etc. na charih
+    - bitmaske se ločijo med little endian in big endian sistemi
+        - (na big endian ali pa če te zanima konkretno): glej ctype.h
+            - `(1 << bit) >> 8` na LE (`(bit) < 8 ? ((1 << (bit)) << 8) : ((1 << (bit)) >> 8)`)
+            - `1 << bit` na BE
+    - na navadnem LE so tole maske:
+    - 0x100 - [isupper](https://en.cppreference.com/c/string/byte/isupper) (uppercase letter)
+    - 0x200 - [islower](https://en.cppreference.com/c/string/byte/islower) (lowercase letter)
+    - 0x400 - [isalpha](https://en.cppreference.com/c/string/byte/isalpha) (alphabeteic)
+    - 0x800 - [isdigit](https://en.cppreference.com/c/string/byte/isdigit) (decimal digit)
+    - 0x1000 - [isxdigit](https://en.cppreference.com/c/string/byte/isxdigit) (hex digit)
+    - 0x2000 - [isspace](https://en.cppreference.com/c/string/byte/isspace) (whitespace)
+    - 0x4000 - [isprint](https://en.cppreference.com/c/string/byte/isprint) (printable, including space)
+    - 0x8000 - [isgraph](https://en.cppreference.com/c/string/byte/isgraph) (printable, excluding space)
+    - 0x1 - [isblank](https://en.cppreference.com/c/string/byte/isblank) (space / tab)
+    - 0x2 - [iscntrl](https://en.cppreference.com/c/string/byte/iscntrl) (control character)
+    - 0x4 - [ispunct](https://en.cppreference.com/c/string/byte/ispunct) (punctuation)
+    - 0x8 - [isalnum](https://en.cppreference.com/c/string/byte/isalnum) (alphanumeric)
 
 
 - direct printf je itak amazing: https://github.com/whatsyourask/basics-of-pwn/blob/main/content/format-string/format-string.md
