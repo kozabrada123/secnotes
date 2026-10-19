@@ -95,7 +95,7 @@ SIGBUS -> fajn je pop-at RBP tolkrat kt ga PUSH-as
 RBP, RSP, RIP
 --> RIP relative je probaby v bss-ju
 
-man x86-\<sth>
+man x86-\<sth> ([ttmo-O/x86-manpages](https://github.com/ttmo-O/x86-manpages))
 
 https://www.felixcloutier.com/x86/$instruction
 
@@ -219,16 +219,33 @@ ofc ne `free` ne stack pop ne karkoli actually ne deleta memorija, isto gre za s
 
 - if you can run arbitrary asm, you don't even need libc! execve syscall (also, you can do environment = null and args = null)
 
-\_\_ctype\_b\_loc --> glej https://stackoverflow.com/questions/37702434/ctype-b-loc-what-is-its-purpose, uporablen je za is\_uppercase, lowercase, alphanumeric etc za chare; 0x2000 je is\_blank
+\_\_ctype\_b\_loc --> glej [stackoverflow ctype-b-loc-what-is-its-purpose](https://stackoverflow.com/questions/37702434/ctype-b-loc-what-is-its-purpose), uporablen je za is\_uppercase, lowercase, alphanumeric etc. na charih
+- bitmaske se ločijo med little endian in big endian sistemi
+    - (na big endian ali pa če te zanima konkretno): glej ctype.h
+        - `(1 << bit) >> 8` na LE (`(bit) < 8 ? ((1 << (bit)) << 8) : ((1 << (bit)) >> 8)`)
+        - `1 << bit` na BE
+- na navadnem LE so tole maske:
+- 0x100 - [isupper](https://en.cppreference.com/c/string/byte/isupper) (uppercase letter)
+- 0x200 - [islower](https://en.cppreference.com/c/string/byte/islower) (lowercase letter)
+- 0x400 - [isalpha](https://en.cppreference.com/c/string/byte/isalpha) (alphabeteic)
+- 0x800 - [isdigit](https://en.cppreference.com/c/string/byte/isdigit) (decimal digit)
+- 0x1000 - [isxdigit](https://en.cppreference.com/c/string/byte/isxdigit) (hex digit)
+- 0x2000 - [isspace](https://en.cppreference.com/c/string/byte/isspace) (whitespace)
+- 0x4000 - [isprint](https://en.cppreference.com/c/string/byte/isprint) (printable, including space)
+- 0x8000 - [isgraph](https://en.cppreference.com/c/string/byte/isgraph) (printable, excluding space)
+- 0x1 - [isblank](https://en.cppreference.com/c/string/byte/isblank) (space / tab)
+- 0x2 - [iscntrl](https://en.cppreference.com/c/string/byte/iscntrl) (control character)
+- 0x4 - [ispunct](https://en.cppreference.com/c/string/byte/ispunct) (punctuation)
+- 0x8 - [isalnum](https://en.cppreference.com/c/string/byte/isalnum) (alphanumeric)
 
-direct printf je itak amazing: https://github.com/whatsyourask/basics-of-pwn/blob/main/content/format-string/format-string.md
+
+- direct printf je itak amazing: https://github.com/whatsyourask/basics-of-pwn/blob/main/content/format-string/format-string.md
 %number$x
-
--> offset: 
-    Send a recognizable prefix followed by multiple pointer specifiers.
-    Example payload: AAAA %p %p %p %p %p %p %p
-    Check the output for the hexadecimal representation of your prefix (AAAA = 0x41414141).
-    Count which %p prints 0x41414141. That number is your offset.
+- offset: 
+    - Send a recognizable prefix followed by multiple pointer specifiers.
+    - Example payload: AAAA %p %p %p %p %p %p %p
+    - Check the output for the hexadecimal representation of your prefix (AAAA = 0x41414141).
+    - Count which %p prints 0x41414141. That number is your offset.
 
 https://docs.pwntools.com/en/stable/fmtstr.html
 
@@ -424,7 +441,7 @@ Za npr. `__thread int x;` je `&x` = `$fs_base - neka_konstanta`
 
 brunners takeaways
 - TLS before libc can be VERY useful in rare cases (tud sam za shranjevat podatke, če veš samo libc address npr.)
-- sometimes calling main again is very useful - first try leak stuff, second try uses the leaks!
+- **sometimes calling main again is very useful - first try leak stuff, second try uses the leaks!**
 
 PE so windows portable executabli - na linuxu glej "pev"
 -> peres -v program.exe | awk '{print $3}'
@@ -472,7 +489,7 @@ C bitlags: https://github.com/jhynes94/C\_BitPacking
 - glej sys v abi - **argumenti so pushed na stack v reverse orderju - prvi pop je prvi arg itd.**
     - ravno zato ima zelo rad mov \[esp], ... chaine!
 - libc želi met v ebx startn address od GOTa da karkoli dela
-    - glej: https://github.com/david942j/one\_gadget/issues/130 oz https://david942j.blogspot.com/2017/02/project-one-gadget-in-glibc.html (Data access method)
+    - glej: [ttmo-O/x86-manpages#130](https://github.com/david942j/one_gadget/issues/130) oz https://david942j.blogspot.com/2017/02/project-one-gadget-in-glibc.html (Data access method)
         - tldr:
 
         ```
