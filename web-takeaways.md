@@ -160,6 +160,9 @@ also, v eni minute gre gor -> takoj si fucked, če maš unconfigured admin panel
 irl probably ni applicable ravno zarad certov, ampak maš lahko
 virtualhoste k samo glede na host header routajo -> subdomain enumeration
 
+mTLS je lep - mutual tls, authenticataš pred http nivojem
+- ročno dodaš certe za userje, sorta tko kt ssh priv/pub key auth
+
 - DNS-PERSIST-01 - nov challenge za letsencrypt
 
 Ip info / geolocation / whatever

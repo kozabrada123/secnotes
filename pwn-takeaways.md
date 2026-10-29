@@ -264,6 +264,7 @@ https://www.ired.team/offensive-security/code-injection-process-injection/binary
     - v dost stari (\<2.42 afaik) se alocira takoj ob prvem mallocu
     - v 2.42 afaik se alocira ob dovolj majhnem mallocu
     - v 2.43 afaik se alocira ob dovolj majhnem free-ju (actually ko ga rabimo)
+- zelo velik malloc (>= 0x20000 in večji kot top chunk) bo posebej `mmap`-an pred TLS
 
 [shellphish/how2heap](https://github.com/shellphish/how2heap) !!
 
@@ -328,7 +329,7 @@ pdb is the symbols file
 - 🦑 - to je thread local storage (TLS) od main threada, ki je tist goofy RW anonymous page mappan direktno pred libc
 - **razen za zelo crazy challenge *ni zelo pomembno za pwn*! rajši prej heap pa vse ostalo** - to je podrobno opisan zaradi avtističnosti in ker sta heap in stack drugje lepše dokumentirana (ir0nstone!)
 - pwndbg commanda tls
-- veliki malloci, AKA mmap(MAP\_ANONYMOUS), so dani direktno pred ta page
+- veliki malloci (default >= 0x20000 in večji kot top chunk), AKA mmap(MAP\_ANONYMOUS), so dani direktno pred ta page
     - če maš tm primitive lahko overridaš canary in thread local stvari
         - tam so juicy libc stvari (main arena, tcache)
         - also, tam so tud function pointerji (tls dtors aka destructors (non-trivial destructorji za thread local C++ classe), ki se kličejo ob exit()u - `__call_tls_dtors` in `dtor_list`, ki je [dtor_list](https://elixir.bootlin.com/glibc/glibc-2.42/source/stdlib/cxa_thread_atexit_impl.c#L82)* (singly linked list))
@@ -437,6 +438,56 @@ Za npr. `__thread int x;` je `&x` = `$fs_base - neka_konstanta`
     - .init_array in .fini_array so arraji constructor in destructor function pointerjev
     - .dynamic in .tdata so thread-local initial valuji
 
+## Pogosti vzorci za primitive-e
+
+Vsaka točka je svoj separate vuln, to so stvari za checkat basically
+
+- ne checkamo lengtha arraya / bufferja properly
+    - `gets` / `scanf("%s")` / `strcpy` / `strcat` / `sprintf`
+    - pišemo dokler imamo podatke, samo `ptr++` / `i++`
+    - če je length user controlled
+    - `memcpy(dst, src, sizeof(src))` -- kjer length dst-ja nismo properly checkal
+    - off by one - `for (int i = 0; i <= len; i++) buf[i] = ...` vs `< len`
+        - v stringih: `for (int i = 0; i < len; i++) buff[i] = ...` - bo overwrital null terminator -> potencijaln leak drugih stvari
+
+- `printf(user_input)` vs `printf("%s", user_input)` -- glej [(1)](https://github.com/whatsyourask/basics-of-pwn/blob/main/content/format-string/format-string.md) in [(2)](https://docs.pwntools.com/en/stable/fmtstr.html) (za offset glej zgoraj pri [libc](#libc))
+
+- uninitialized vrednosti ! (`int c;` vs `int c = 0;`; `Struct *ptr = malloc(sizeof(Struct));` vs `Struct *ptr = calloc(sizeof(Struct));`)
+    - ostanejo od prej
+    - na stacku: od drugih function callov, ki so včasih imeli tam stack frame, mogoče celo od istega
+    - na heapu: od drugih `malloc`ov iste (mogoče večje) velikost! -> easy exploitat, če lahko `malloc`aš in `free`jaš semi-arbitrary velikosti
+
+- signed (potencijalno negativni) array indexi
+
+- signed (potencijalno negativen) len / size
+    - ki je v `for` loop-u checkan z `==` -> `for (int i = 0; i != len; i++) ...` (`int i = 0; i != -1; i++` -> gre 0 -> int max -> overflow -> int min -> -1)
+    - `if (len < MAX_SIZE) memcpy(dst, src, len)` - len je `< MAX_SIZE`, ker je `-1 < MAX_SIZE`, `memcpy` pa ga pretvori v unsigned -> zelo velik len 
+
+- signed (potencijalno negativen) `malloc` size - conversion v unsigned - zelo velik `malloc` -> ni več na heapu ampak zraven TLS
+
+- overflowan `malloc` size - npr. `int size = int_width * int_height;` - premajhni alloc (npr. 0x10000 * 0x10000 -> 0x100000000, kar je 1)
+
+- (error) path, ki `free`-ja ptr ampak ga ne nastavi na 0
+    - use after `free` in double `free`
+
+- realloc misuse
+    - star pointer še uporabimo kasneje `drug_ptr = realloc(ptr, newsize); ... ptr.field = ...`
+    - kot bootleg free, in potem še uporabimo starega `realloc(ptr, 0); ... ptr.field = ...`
+
+- `int local = 5; return &local` - pointer outliva vrednost, kasnejše funkcije lahko vrednost spremenijo
+
+- grd pattern: (velikokrat to potem povzroča probleme, `sizeof(Packet.data)` bo 1, ... )
+```c
+struct Packet { uint32_t len; char data[1]; }; // classic "struct hack"
+p = malloc(sizeof(struct Packet) + real_len);
+```
+
+
+V splošnem:
+- začni gledat tm kjer dobimo user input
+- v vsej memory stvareh (mem* funkcije, array index, pointer cast, *alloc, ...) checkej iz kje pridejo vrednosti in kaj zagotavlja, da so valid
+- glej lifetime-e in ownership pointerjev
+
 ## random
 
 brunners takeaways
@@ -496,3 +547,30 @@ C bitlags: https://github.com/jhynes94/C\_BitPacking
         $ readelf -d libc.so.6 | grep PLTGOT
         0x00000003 (PLTGOT)                     0x1b2000
         ```
+
+
+## C++
+
+- class-i ki imajo `virtual` funkcije uporablajo [vtable](https://en.wikipedia.org/wiki/Virtual_method_table)-e (at runtime katere funkcije so katere)
+    - pointer na vtable je takoj na začetku classa v spominu
+    - če imaš primitive, ki ti ta pointer dovoli overwritat -> direktni control flow hijack (narediš svoj fake vtable, bo izvedel funkcijo ki jo ti želiš)
+
+- subtle use after free stvari, hidden `free`-ji
+```cpp
+std::vector<Obj*> v;
+for (auto it = v.begin(); it != v.end(); ) {
+    v.push_back(new Obj()); // možna realokacija vektorja! iterator je zdaj invalid
+    ++it; // Use after free!
+}
+```
+
+```cpp
+std::string str;
+
+char *raw = &str[0];
+// enako kot
+char *raw = str.c_str();
+
+str.resize(16); // mogoče realocira str, kar bo invalidatal raw
+raw[0] = 'x'; // Use after free
+```
