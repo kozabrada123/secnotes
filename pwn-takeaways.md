@@ -57,6 +57,7 @@ checksec !!!
 - bins
 - vis
 - tls
+- find (išče vrednosti v spominu)
 - break (info breakpoints / del \<num>)
 - run (can have redirects (\<))
 
@@ -67,6 +68,7 @@ checksec !!!
 
 - info npr. functions
 - show npr. architecture, set npr. architecture i386
+- help \<command\>
 
 [gef](https://github.com/bata24/gef) tudi obstaja
 
