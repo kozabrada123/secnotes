@@ -85,6 +85,10 @@ SELECT name FROM ... {injection} -> + UNION SELECT flag FROM ...
 ```
 or just use LIKE for byte per byte
 
+MySQL (mariaDB, ...) ma [executable commente](https://mariadb.com/docs/server/reference/sql-statements/comment-syntax#executable-comments): če maš recimo dve različni databazi, pač jank je
+
+če je presledk disallowed ga lahko multiline comment /**/ pofejka
+
 NoSQL:
 injecting `>`, `<`, `>=`, `<=` -> greater than null, everything is greater than null
 
@@ -187,3 +191,5 @@ formost - recover badly deleted data
 social engineering toolkit
 
 včasih (še posebi za deprecated stvari) se domene za dns nameserverje expirajo, in lahko delaš dns hijacking
+
+TRACE / TRACK HTTP včasih naredi information disclosure
