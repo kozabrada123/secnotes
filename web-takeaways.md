@@ -2,8 +2,10 @@
 
 .git/HEAD - https://github.com/arthaud/git-dumper
 
-- see some wordlists on https://github.com/hAPI-hacker/Hacking-APIs
-- burp suite - maybe
+- [swisskyrepo/PayloadsAllTheThings](https://github.com/swisskyrepo/PayloadsAllTheThings/blob/master/SQL%20Injection/MySQL%20Injection.md)
+
+- wordslists - [danielmiessler/seclists](https://github.com/danielmiessler/seclists); + maybe https://github.com/hAPI-hacker/Hacking-APIs
+- burp suite je lahko uporaben
 
 - JWTs has 3 parts, seperated by periods, first two begin with ey
    - "none" JWTs are like leaving your door unlocked
