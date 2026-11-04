@@ -1,4 +1,6 @@
 
+[a je nekdo že factorov moj rsa public key?](https://factordb.com/)
+
 a^n where n [1, p-1) mod p doesn't always generate the entire set [1, p-1) !
 
 If a is a residue, then a^n is naturally also a residue. It's worth checking if it is, because then it doesn't generate the whole set
