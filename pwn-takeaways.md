@@ -342,7 +342,7 @@ pdb is the symbols file
 - veliki malloci (default >= 0x20000 in večji kot top chunk), AKA mmap(MAP\_ANONYMOUS), so dani direktno pred ta page
     - če maš tm primitive lahko overridaš canary in thread local stvari
         - tam so juicy libc stvari (main arena, tcache)
-        - also, tam so tud function pointerji (tls dtors aka destructors (non-trivial destructorji za thread local C++ classe), ki se kličejo ob exit()u - `__call_tls_dtors` in `dtor_list`, ki je [dtor_list](https://elixir.bootlin.com/glibc/glibc-2.42/source/stdlib/cxa_thread_atexit_impl.c#L82)* (singly linked list))
+        - also, tam so tud function pointerji (tls dtors aka destructors (non-trivial destructorji za thread local C++ classe), ki se kličejo ob exit()u - `__call_tls_dtors` in `tls_dtor_list`, ki je [dtor_list](https://elixir.bootlin.com/glibc/glibc-2.42/source/stdlib/cxa_thread_atexit_impl.c#L82)* (singly linked list, to je head))
             - xor-ani so s pointer_guardom in ror-jani, ta guard je direktno po stack canaryjem ([bootlin](https://elixir.bootlin.com/glibc/glibc-2.42/source/sysdeps/x86_64/nptl/tls.h#L42) - tcbhead_t = thread control block head)
             - glej [ljagiello/ctf-skills#tls-destructor-overwrite-for-rce-via-__call_tls_dtors](https://github.com/ljagiello/ctf-skills/blob/main/ctf-pwn/advanced-exploits-2.md#tls-destructor-overwrite-for-rce-via-__call_tls_dtors)
 
