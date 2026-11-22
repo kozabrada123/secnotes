@@ -346,14 +346,13 @@ pdb is the symbols file
             - xor-ani so s pointer_guardom in ror-jani, ta guard je direktno po stack canaryjem ([bootlin](https://elixir.bootlin.com/glibc/glibc-2.42/source/sysdeps/x86_64/nptl/tls.h#L42) - tcbhead_t = thread control block head)
             - glej [ljagiello/ctf-skills#tls-destructor-overwrite-for-rce-via-__call_tls_dtors](https://github.com/ljagiello/ctf-skills/blob/main/ctf-pwn/advanced-exploits-2.md#tls-destructor-overwrite-for-rce-via-__call_tls_dtors)
 
-- layout za x86 (ja, vir je clanker):
+- layout za x86:
 ```
  high addresses
  ┌──────────────────────────────────────────────────────┐
  │ rest of struct pthread                               │
  │   tid, cancel state, robust_list,                    │
  │   specific[] (pthread_setspecific),                  │
- │   tls_dtor_list   (A)                                │
  │   ...                                                │
  ├──────────────────────────────────────────────────────┤
  │ tcbhead_t (first member of struct pthread)           │
@@ -363,24 +362,19 @@ pdb is the symbols file
  │   +0x1c  gscope_flag                                 │
  │   +0x18  multiple_threads                            │
  │   +0x10  self (THREAD_SELF / pthread_self)           │
- │   +0x08  dtv            (B)               $fs:0x08   │
+ │   +0x08  dtv            (A)               $fs:0x08   │
  │   +0x00  tcb  (self-pointer)              $fs:0x00   │
  ├──────────────────────────────────────────────────────┤ ◄── $fs_base = TP (thread pointer)
  │ module 1: your executable (.tdata + .tbss)           │  $fs:-N, fixed offset
  ├──────────────────────────────────────────────────────┤
- │ module 2..k: libc.so.6, libm, other libs             │  errno, tcache ptr,
- │   loaded at startup ("static TLS")                   │  thread_arena, ctype/locale, ...
+ │ module 2..k: libc.so.6, libm, other libs             │  thread_arena, tls_dtor_list (B), errno,
+ │   loaded at startup ("static TLS")                   │  tcache, ctype/locale, ...
  ├──────────────────────────────────────────────────────┤
  │ static TLS surplus (for dlopen'd libs, init-exec)    │
  └──────────────────────────────────────────────────────┘
  low addresses
 
-
- (A) tls_dtor_list  ──►  [dtor_func | obj | dso_handle | next] ──► [...] ──► NULL
-     (singly-linked list of thread_local destructors registered
-      via __cxa_thread_atexit_impl; run at thread exit)
-
- (B) dtv  ──►  dtv[-1] = generation counter
+ (A) dtv  ──►  dtv[-1] = generation counter
                dtv[0]  = unused / reserved
                dtv[1]  = pointer into module 1's TLS block  (your exe)
                dtv[2]  = pointer into module 2's TLS block  (e.g. libc)
@@ -388,7 +382,13 @@ pdb is the symbols file
                (indexed by module id from the dynamic linker;
                 dlopen'd modules get entries added/resized here)
                (baje allocated lazily on first access)
+
+ (B) tls_dtor_list  ──►  [dtor_func | obj | dso_handle | next] ──► [...] ──► NULL
+     (singly-linked list of thread_local destructors registered
+      via __cxa_thread_atexit_impl; run at thread exit)
 ```
+
+[pthread](https://elixir.bootlin.com/glibc/glibc-2.42/source/nptl/descr.h#L136), [tcbhead_t](https://elixir.bootlin.com/glibc/glibc-2.42/source/sysdeps/x86_64/nptl/tls.h#L70)
 
 How code reaches each kind of variable (this is why the offsets differ):
 		
