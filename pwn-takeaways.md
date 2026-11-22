@@ -342,57 +342,64 @@ pdb is the symbols file
 - veliki malloci (default >= 0x20000 in večji kot top chunk), AKA mmap(MAP\_ANONYMOUS), so dani direktno pred ta page
     - če maš tm primitive lahko overridaš canary in thread local stvari
         - tam so juicy libc stvari (main arena, tcache)
-        - also, tam so tud function pointerji (tls dtors aka destructors (non-trivial destructorji za thread local C++ classe), ki se kličejo ob exit()u - `__call_tls_dtors` in `tls_dtor_list`, ki je [dtor_list](https://elixir.bootlin.com/glibc/glibc-2.42/source/stdlib/cxa_thread_atexit_impl.c#L82)* (singly linked list, to je head))
+        - also, tam so tud function pointerji (tls dtors aka destructors (non-trivial destructorji za thread local C++ classe), ki se kličejo ob exit()u - `__call_tls_dtors` in `tls_dtor_list` (nestalen offset med glibc verzijami), ki je [dtor_list](https://elixir.bootlin.com/glibc/glibc-2.42/source/stdlib/cxa_thread_atexit_impl.c#L82)* (singly linked list, to je head))
             - xor-ani so s pointer_guardom in ror-jani, ta guard je direktno po stack canaryjem ([bootlin](https://elixir.bootlin.com/glibc/glibc-2.42/source/sysdeps/x86_64/nptl/tls.h#L42) - tcbhead_t = thread control block head)
             - glej [ljagiello/ctf-skills#tls-destructor-overwrite-for-rce-via-__call_tls_dtors](https://github.com/ljagiello/ctf-skills/blob/main/ctf-pwn/advanced-exploits-2.md#tls-destructor-overwrite-for-rce-via-__call_tls_dtors)
 
 - layout za x86 (ja, vir je clanker):
 ```
  high addresses
- ┌────────────────────────────────────────────┐
- │ rest of struct pthread                     │  tid, cancel state, robust list,
- │                                            │  specific[] (pthread_setspecific), ...
- ├────────────────────────────────────────────┤
- │ tcbhead_t (first member of struct pthread) │
- │   +0x00  tcb  (self-pointer)               │ ◄── $fs_base = thread pointer (TP)
- │   +0x08  dtv  ─────────────────────────────┼──► dtv[] (see below)
- │   +0x10  self (THREAD_SELF / pthread_self) │
- │   +0x18  multiple_threads                  │
- │   +0x1c  gscope_flag                       │
- │   +0x20  sysinfo                           │
- │   +0x28  stack_guard   (stack canary)      │  $fs:0x28
- │   +0x30  pointer_guard (PTR_MANGLE key)    │  $fs:0x30
- │   ...    feature_1, shadow-stack, padding  │
- ├────────────────────────────────────────────┤ ◄── $fs:0
- │ module 1: YOUR executable (.tdata + .tbss) │  $fs:-N, fixed offset
- ├────────────────────────────────────────────┤
- │ module 2..k: libc.so.6, libm, other libs   │  libc's errno, tcache ptr,
- │   loaded at startup ("static TLS")         │  thread_arena, ctype/locale pointers, ...
- ├────────────────────────────────────────────┤
- │ static TLS surplus (small spare area)      │  for dlopen'd libs using initial-exec TLS
- └────────────────────────────────────────────┘
+ ┌──────────────────────────────────────────────────────┐
+ │ rest of struct pthread                               │
+ │   tid, cancel state, robust_list,                    │
+ │   specific[] (pthread_setspecific),                  │
+ │   tls_dtor_list   (A)                                │
+ │   ...                                                │
+ ├──────────────────────────────────────────────────────┤
+ │ tcbhead_t (first member of struct pthread)           │
+ │   +0x30  pointer_guard (PTR_MANGLE key)   $fs:0x30   │
+ │   +0x28  stack_guard   (stack canary)     $fs:0x28   │
+ │   +0x20  sysinfo                                     │
+ │   +0x1c  gscope_flag                                 │
+ │   +0x18  multiple_threads                            │
+ │   +0x10  self (THREAD_SELF / pthread_self)           │
+ │   +0x08  dtv            (B)               $fs:0x08   │
+ │   +0x00  tcb  (self-pointer)              $fs:0x00   │
+ ├──────────────────────────────────────────────────────┤ ◄── $fs_base = TP (thread pointer)
+ │ module 1: your executable (.tdata + .tbss)           │  $fs:-N, fixed offset
+ ├──────────────────────────────────────────────────────┤
+ │ module 2..k: libc.so.6, libm, other libs             │  errno, tcache ptr,
+ │   loaded at startup ("static TLS")                   │  thread_arena, ctype/locale, ...
+ ├──────────────────────────────────────────────────────┤
+ │ static TLS surplus (for dlopen'd libs, init-exec)    │
+ └──────────────────────────────────────────────────────┘
  low addresses
+
+
+ (A) tls_dtor_list  ──►  [dtor_func | obj | dso_handle | next] ──► [...] ──► NULL
+     (singly-linked list of thread_local destructors registered
+      via __cxa_thread_atexit_impl; run at thread exit)
+
+ (B) dtv  ──►  dtv[-1] = generation counter
+               dtv[0]  = unused / reserved
+               dtv[1]  = pointer into module 1's TLS block  (your exe)
+               dtv[2]  = pointer into module 2's TLS block  (e.g. libc)
+               dtv[k]  = pointer into module k's TLS block
+               (indexed by module id from the dynamic linker;
+                dlopen'd modules get entries added/resized here)
+               (baje allocated lazily on first access)
 ```
-
-The dtv (dynamic thread vector) is what __tls_get_addr uses:
-
-- dtv\[-1].counter = number of slots
-- dtv\[0].counter  = generation count
-- dtv\[1].pointer  → module 1 block (inside the static area)
-- dtv\[2].pointer  → module 2 block (e.g. libc)
-- ...
-- dtv\[n].pointer  → malloc'd block for a dlopen'd lib (allocated lazily on first access)
 
 How code reaches each kind of variable (this is why the offsets differ):
 		
 | Variable in                      | TLS model       | Access                                                   |
 |----------------------------------|-----------------|----------------------------------------------------------|
-| Your executable                  | local-exec      | mov fs:-4, $eax, offset known at link time              |
-| libc.so (e.g. errno)             | initial-exec    | load the offset from the GOT (@gottpoff), then %fs:(reg) |
+| Your executable                  | local-exec      | mov fs:-4, $eax, offset known at link time               |
+| libc.so (e.g. errno)             | initial-exec    | load the offset from the GOT (@gottpoff), then $fs:(reg) |
 | Other shared libs, -fPIC default | general-dynamic | call __tls_get_addr, which goes through the dtv          |
 | Library loaded by dlopen         | general-dynamic | same, with a dynamically allocated block                 |
 
-Za npr. `__thread int x;` je `&x` = `$fs_base - neka_konstanta`
+Za npr. `__thread int x;` je `&x` = `$fs_base - neka_konstanta` (=`fs:-N`)
 
 ### več threadov
 
