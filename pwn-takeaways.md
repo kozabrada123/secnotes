@@ -2,15 +2,14 @@
 
 \>https://github.com/ljagiello/ctf-skills/tree/main/ctf-pwn<
 
-https://syscall.sh/ \<-- to niti ni tolk pomembn (pač kaj naredi in kako se uporablja `syscall` instruction (aka `int 0x80`))
-
 Hardware fault injection: turn the power down for e.g. one specific instruction to skip it
 
 Some boards have a voltage regulator, where you can just wire your own thingy on to trick it
 
 do not underestimate fuzzing, especially parsers
+- [AFL++](https://github.com/aflplusplus/aflplusplus), [tutorials](https://github.com/AFLplusplus/AFLplusplus/blob/stable/docs/tutorials.md)
 
-rev c# - [dotpeek](https://www.jetbrains.com/decompiler/) -- na tej temi [ysoserial.net](https://github.com/pwntester/ysoserial.net) in [ysonet](https://github.com/irsdl/ysonet)
+reversanje c#-a - [dotpeek](https://www.jetbrains.com/decompiler/) -- na tej temi [ysoserial.net](https://github.com/pwntester/ysoserial.net) in [ysonet](https://github.com/irsdl/ysonet)
 
 ldd - view versions of ld and glibc - asterisk, view where they are linked to, not the version!
     - also, to kaže dependencije depencencijev, tko da ne bo nujno required od osnovnega elfa, ampak lahko je 
@@ -66,9 +65,11 @@ checksec !!!
 - attach \<pid>
 - thread \<cifra>
 
-- info npr. functions
+- info npr. functions / variables
 - show npr. architecture, set npr. architecture i386
 - help \<command\>
+
+- [decompiler integration](https://pwndbg.re/dev/tutorials/decompiler-integration/) (di command) je godsend
 
 [gef](https://github.com/bata24/gef) tudi obstaja
 
@@ -89,6 +90,8 @@ https://wiki.osdev.org/System_V_ABI
 - return value is in RAX
 - args: rdi, rsi, rdx, rcx, r8, r9
 (destination, source)
+
+https://syscall.sh/ \<-- (kako se uporablja `syscall` instruction (aka `int 0x80`))
 
 movaps causes a SIGSEGV if RSP is not 16 byte aligned
 
@@ -241,15 +244,20 @@ ofc ne `free` ne stack pop ne karkoli actually ne deleta memorija, isto gre za s
     - 0x8 - [isalnum](https://en.cppreference.com/c/string/byte/isalnum) (alphanumeric)
 
 
-- direct printf je itak amazing: https://github.com/whatsyourask/basics-of-pwn/blob/main/content/format-string/format-string.md
-%number$x
-- offset: 
-    - Send a recognizable prefix followed by multiple pointer specifiers.
-    - Example payload: AAAA %p %p %p %p %p %p %p
-    - Check the output for the hexadecimal representation of your prefix (AAAA = 0x41414141).
-    - Count which %p prints 0x41414141. That number is your offset.
-
-https://docs.pwntools.com/en/stable/fmtstr.html
+- direct `printf` je itak amazing: ([whatsyourask/basics-of-pwn](https://github.com/whatsyourask/basics-of-pwn/blob/main/content/format-string/format-string.md))
+    - [pwntools module](https://docs.pwntools.com/en/stable/fmtstr.html) -- offset: 
+        - Send a recognizable prefix followed by multiple pointer specifiers.
+        - Example payload: `AAAA %p %p %p %p %p %p %p`
+        - Check the output for the hexadecimal representation of your prefix (`AAAA` = `0x41414141`).
+        - Count which `%p` prints `0x41414141`. That number is your offset.
+    - leak: `%`number`$p` -- sprinta n-ti argument kot hex; argumenti so pač System V, rdi je format string, mi pa lahko leakamo rsi, rdx, rcx, r8, r9 in potem stack
+    - write: `%n` kot argument vzame argument, v katerega zapiše število napisanih bytov
+        - to pomen, da za arbitrary write samo rabš a) ta argument nastavt na svoj address in b) zapisat tolk bytov kt je tvoj value
+        - b) je relativno simple: `%1000000000c`
+        - a) ta argument navadno controllamo skoz *svoj input string*, ker je usually tudi na stacku;
+            - ko kličemo `printf` bo rdi address našega stringa, eventuelno pa bomo prišli iz vrha stacka (6.+ argument) do *samih podatkov* našega stringa
+            - torej samo v naš string damo `p64(addr)` na tako točko da lahko dosežemo prek argumentov
+        - seveda lahko tud v kkšn drug pointer na stacku writamo
 
 https://www.ired.team/offensive-security/code-injection-process-injection/binary-exploitation/return-to-libc-ret2libc
 
@@ -336,7 +344,7 @@ pdb is the symbols file
         - tam so juicy libc stvari (main arena, tcache)
         - also, tam so tud function pointerji (tls dtors aka destructors (non-trivial destructorji za thread local C++ classe), ki se kličejo ob exit()u - `__call_tls_dtors` in `dtor_list`, ki je [dtor_list](https://elixir.bootlin.com/glibc/glibc-2.42/source/stdlib/cxa_thread_atexit_impl.c#L82)* (singly linked list))
             - xor-ani so s pointer_guardom in ror-jani, ta guard je direktno po stack canaryjem ([bootlin](https://elixir.bootlin.com/glibc/glibc-2.42/source/sysdeps/x86_64/nptl/tls.h#L42) - tcbhead_t = thread control block head)
-            - glej https://github.com/ljagiello/ctf-skills/blob/main/ctf-pwn/advanced-exploits-2.md#tls-destructor-overwrite-for-rce-via-__call_tls_dtors
+            - glej [ljagiello/ctf-skills#tls-destructor-overwrite-for-rce-via-__call_tls_dtors](https://github.com/ljagiello/ctf-skills/blob/main/ctf-pwn/advanced-exploits-2.md#tls-destructor-overwrite-for-rce-via-__call_tls_dtors)
 
 - layout za x86 (ja, vir je clanker):
 ```
@@ -452,10 +460,10 @@ Vsaka točka je svoj separate vuln, to so stvari za checkat basically
     - off by one - `for (int i = 0; i <= len; i++) buf[i] = ...` vs `< len`
         - v stringih: `for (int i = 0; i < len; i++) buff[i] = ...` - bo overwrital null terminator -> potencijaln leak drugih stvari
 
-- `printf(user_input)` vs `printf("%s", user_input)` -- glej [(1)](https://github.com/whatsyourask/basics-of-pwn/blob/main/content/format-string/format-string.md) in [(2)](https://docs.pwntools.com/en/stable/fmtstr.html) (za offset glej zgoraj pri [libc](#libc))
+- `printf(user_input)` vs `printf("%s", user_input)` -- glej [(1)](https://github.com/whatsyourask/basics-of-pwn/blob/main/content/format-string/format-string.md) in [(2)](https://docs.pwntools.com/en/stable/fmtstr.html) in [libc](#libc)
 
 - uninitialized vrednosti ! (`int c;` vs `int c = 0;`; `Struct *ptr = malloc(sizeof(Struct));` vs `Struct *ptr = calloc(sizeof(Struct));`)
-    - ostanejo od prej
+    - ostanejo podatki od prej
     - na stacku: od drugih function callov, ki so včasih imeli tam stack frame, mogoče celo od istega
     - na heapu: od drugih `malloc`ov iste (mogoče večje) velikost! -> easy exploitat, če lahko `malloc`aš in `free`jaš semi-arbitrary velikosti
 
@@ -465,14 +473,14 @@ Vsaka točka je svoj separate vuln, to so stvari za checkat basically
     - ki je v `for` loop-u checkan z `==` -> `for (int i = 0; i != len; i++) ...` (`int i = 0; i != -1; i++` -> gre 0 -> int max -> overflow -> int min -> -1)
     - `if (len < MAX_SIZE) memcpy(dst, src, len)` - len je `< MAX_SIZE`, ker je `-1 < MAX_SIZE`, `memcpy` pa ga pretvori v unsigned -> zelo velik len 
 
-- signed (potencijalno negativen) `malloc` size - conversion v unsigned - zelo velik `malloc` -> ni več na heapu ampak zraven TLS
+- signed (potencijalno negativen) `malloc` size - conversion v unsigned, prevelik, failed malloc
 
 - overflowan `malloc` size - npr. `int size = int_width * int_height;` - premajhni alloc (npr. 0x10000 * 0x10000 -> 0x100000000, kar je 1)
 
 - (error) path, ki `free`-ja ptr ampak ga ne nastavi na 0
     - use after `free` in double `free`
 
-- realloc misuse
+- `realloc` misuse
     - star pointer še uporabimo kasneje `drug_ptr = realloc(ptr, newsize); ... ptr.field = ...`
     - kot bootleg free, in potem še uporabimo starega `realloc(ptr, 0); ... ptr.field = ...`
 
@@ -494,7 +502,7 @@ V splošnem:
 
 brunners takeaways
 - TLS before libc can be VERY useful in rare cases (tud sam za shranjevat podatke, če veš samo libc address npr.)
-- **sometimes calling main again is very useful - first try leak stuff, second try uses the leaks!**
+- **sometimes calling main again is very useful - first try to leak stuff, second try uses the leaks!**
 
 PE so windows portable executabli - na linuxu glej "pev"
 -> peres -v program.exe | awk '{print $3}'
@@ -513,15 +521,19 @@ open naredi nov file descriptor, ki je literally samo incremental od 3 naprej (y
 
 fopen / fread / fwrite -> FILE*
 
-[srop (sigreturn oriented)](https://hacktricks.wiki/en/binary-exploitation/rop-return-oriented-programing/srop-sigreturn-oriented-programming/index.html) in [sfop (segfault oriented)](https://media.defcon.org/DEF%20CON%2034/DEF%20CON%2034%20presentations/DEF%20CON%2034%20presentations/DEF%20CON%2034%20-%20Marcos%20Bajo%2C%20Ritvik%20Goyal%20-%20Crashing%20the%20Party%20Pwning%20Control-Flow%20Integrity%20with%20Segmentation%20Fault-Oriented%20Programming%20-%20Crashingthe.pdf) obstaja apparently
+[srop (sigreturn oriented)](https://hacktricks.wiki/en/binary-exploitation/rop-return-oriented-programing/srop-sigreturn-oriented-programming/index.html) in [sfop (segfault oriented)](https://media.defcon.org/DEF%20CON%2034/DEF%20CON%2034%20presentations/DEF%20CON%2034%20presentations/DEF%20CON%2034%20-%20Marcos%20Bajo%2C%20Ritvik%20Goyal%20-%20Crashing%20the%20Party%20Pwning%20Control-Flow%20Integrity%20with%20Segmentation%20Fault-Oriented%20Programming%20-%20Crashingthe.pdf) obstajata apparently
 
 tudi [fsop](https://niftic.ca/posts/fsop/) - file system oriented
 
-hidden permission je setuid (za sudo npr.) ki naredi da se zalaufa kot njegov owner
+hidden permission npr. setuid (za sudo npr.) ki naredi da se zalaufa kot njegov owner
+- STICKY - 1xxx
+- SUID - set user id, to ^ (zalaufa process z user id-jem od ownerja) - 2xxx
+- SGID - set group id, zalaufa process z group id-jem od ownerja -- 4xxx
+- glej [File-system permissions](https://en.wikipedia.org/wiki/File-system_permissions) na wikipediji, *\#Changing permission behavior with setuid, setgid, and sticky bits*, ne znam narest linka na ta section lol
 
-bpftrace - useful tracing and debugging tool
+[bpftrace](https://github.com/bpftrace/bpftrace) - useful tracing and debugging tool
 
-inotify - trace-anje za file evente
+[inotify]() - trace-anje za file evente
 
 https://youtu.be/3F5icGjDWfg?t=1404 --- LD\_PRELOAD, druge env variable: ephemeral file, preko /proc/self/fd !!!!!
 
@@ -536,7 +548,7 @@ start qemu virtual network: sudo virsh net-start default
 
 vsi terminali so shite in ti ne dovoljo pastat dolgih stvari
 
-C bitlags: https://github.com/jhynes94/C\_BitPacking
+C bitlags: [jhynes94/C\_BitPacking](https://github.com/jhynes94/C_BitPacking)
 
 ## i386
 - glej sys v abi - **argumenti so pushed na stack v reverse orderju - prvi pop je prvi arg itd.**
