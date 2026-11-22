@@ -186,7 +186,7 @@ https://github.com/wpscanteam/wpscan/
 
 springboot - misconfig - https://youtu.be/5VlhsT5Kbsk?t=1364 // heapdump endpoint exposed
 
-ffuf / dirbuster / feroxbuster
+ffuf (za actual pentest nastavi user agent!) / dirbuster / feroxbuster
 
 formost - recover badly deleted data
 
