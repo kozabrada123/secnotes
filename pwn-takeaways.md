@@ -331,6 +331,8 @@ https://sourceware.org/glibc/wiki/Glibc%20Timeline
 
 2.43 | fastbins are kill
 
+2.44 | pointer guard removed iz tcbhead_t-ja ([commit](https://sourceware.org/git/?p=glibc.git;a=commit;h=a5ec880f808e))
+
 ---
 
 pdb is the symbols file
@@ -343,7 +345,7 @@ pdb is the symbols file
     - če maš tm primitive lahko overridaš canary in thread local stvari
         - tam so juicy libc stvari (main arena, tcache)
         - also, tam so tud function pointerji (tls dtors aka destructors (non-trivial destructorji za thread local C++ classe), ki se kličejo ob exit()u - `__call_tls_dtors` in `tls_dtor_list` (nestalen offset med glibc verzijami), ki je [dtor_list](https://elixir.bootlin.com/glibc/glibc-2.42/source/stdlib/cxa_thread_atexit_impl.c#L82)* (singly linked list, to je head))
-            - xor-ani so s pointer_guardom in ror-jani, ta guard je direktno po stack canaryjem ([bootlin](https://elixir.bootlin.com/glibc/glibc-2.42/source/sysdeps/x86_64/nptl/tls.h#L42) - tcbhead_t = thread control block head)
+            - xor-ani so s pointer_guardom in ror-jani (glej: [PTR_MANGLE, PTR_DEMANGLE](https://elixir.bootlin.com/glibc/glibc-2.43/source/sysdeps/unix/sysv/linux/x86_64/pointer_guard.h#L36), [pwntools helperji](https://docs.pwntools.com/en/dev/libc/glibc.html)), ta guard je direktno po stack canaryjem ([bootlin](https://elixir.bootlin.com/glibc/glibc-2.42/source/sysdeps/x86_64/nptl/tls.h#L42) - tcbhead_t = thread control block head)
             - glej [ljagiello/ctf-skills#tls-destructor-overwrite-for-rce-via-__call_tls_dtors](https://github.com/ljagiello/ctf-skills/blob/main/ctf-pwn/advanced-exploits-2.md#tls-destructor-overwrite-for-rce-via-__call_tls_dtors)
 
 - layout za x86:
@@ -356,7 +358,7 @@ pdb is the symbols file
  │   ...                                                │
  ├──────────────────────────────────────────────────────┤
  │ tcbhead_t (first member of struct pthread)           │
- │   +0x30  pointer_guard (PTR_MANGLE key)   $fs:0x30   │
+ │   +0x30  pointer_guard (PTR_MANGLE key)   $fs:0x30   │ <-- note: do GLIBC 2.44, potem je v RELRO segmentu
  │   +0x28  stack_guard   (stack canary)     $fs:0x28   │
  │   +0x20  sysinfo                                     │
  │   +0x1c  gscope_flag                                 │
