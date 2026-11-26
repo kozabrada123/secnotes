@@ -151,7 +151,7 @@ default kaj naredi gcc (a so canariji by default, kdaj, ...) nastavijo distroji;
 stack canary:
 - na stack je pushan nek random thingy iz kernel-set thread local space-a (note: 🦑), kernel ga zgenerira, ampak je samo *per process* unique
 - uporaba zgleda kot 
-```asm
+```assembly
 začetek:
 mov    rax,QWORD PTR fs:0x28
 mov    QWORD PTR [rbp-0x8],rax
@@ -209,6 +209,7 @@ ofc ne `free` ne stack pop ne karkoli actually ne deleta memorija, isto gre za s
 ## libc
 - GOT (global offset table) -> libc addressi
     - napolne po actual callu funkcije
+        - full relro: GOT je RO, it's joever
         - partial relro: pred .bss
         - no relro: i guess po .bss-ju?
 - PLT (procedure linking table) -> actually tja kamor jumpaš da kličeš stvari
@@ -524,14 +525,15 @@ PE so windows portable executabli - na linuxu glej "pev"
 https://oneraynyday.github.io/dev/2020/05/03/Analyzing-The-Simplest-C++-Program/
 
 setvbuf modes:
-- IOFBF = 0 (full buffer)
-- IOLBF = 1 (line buffer)
-- IONBF = 2 (no buffer)
+- \_IOFBF = 0 (full buffer)
+- \_IOLBF = 1 (line buffer)
+- \_IONBF = 2 (no buffer)
 
 setvbuf(stdin, 0, 2, 0) -> set mode to not buffered
 
 open / read / write -> *file descriptor*, 0 STDIN, 1 STDOUT, 2 STDERR
-open naredi nov file descriptor, ki je literally samo incremental od 3 naprej (you had one job)
+
+open naredi nov file descriptor, ki je literally samo incremental od 3 naprej
 
 fopen / fread / fwrite -> FILE*
 
@@ -565,8 +567,13 @@ vsi terminali so shite in ti ne dovoljo pastat dolgih stvari
 C bitlags: [jhynes94/C\_BitPacking](https://github.com/jhynes94/C_BitPacking)
 
 ## i386
+
+- ASLR je samo 8 bitov, kar je reasonably mal (v nasprotju s 28-mi na x64)
+    - še večje možnosti: [Quantum ROP: ROP but cooler (phrack i72)](https://phrack.org/issues/72/quantum-rop-rop-but-cooler_md#article)
+
 - glej sys v abi - **argumenti so pushed na stack v reverse orderju - prvi pop je prvi arg itd.**
     - ravno zato ima zelo rad mov \[esp], ... chaine!
+
 - libc želi met v ebx startn address od GOTa da karkoli dela
     - glej: [ttmo-O/x86-manpages#130](https://github.com/david942j/one_gadget/issues/130) oz https://david942j.blogspot.com/2017/02/project-one-gadget-in-glibc.html (Data access method)
         - tldr:
