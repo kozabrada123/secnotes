@@ -1,21 +1,22 @@
-\>\> https://ir0nstone.gitbook.io/notes <<
 
-\>https://github.com/ljagiello/ctf-skills/tree/main/ctf-pwn<
+## Reading material
 
-Hardware fault injection: turn the power down for e.g. one specific instruction to skip it
+- [**ir0nstone gitbook**](https://ir0nstone.gitbook.io/notes) - osnove
+- [ljagiello/ctf-skills](https://github.com/ljagiello/ctf-skills/tree/main/ctf-pwn) - random advanced stvari
+- [revija phrack](https://phrack.org/)
+- [bootlin](https://elixir.bootlin.com/glibc/glibc-2.44/source) - source raznih stvari (linux, glibc, ...)
+- [ccc](https://media.ccc.de/) in [defcon](https://media.defcon.org/?C=M&O=A)
+- (velik drugih random linkov je v tem dokumentu)
 
-Some boards have a voltage regulator, where you can just wire your own thingy on to trick it
+## Main
 
-do not underestimate fuzzing, especially parsers
-- [AFL++](https://github.com/aflplusplus/aflplusplus), [tutorials](https://github.com/AFLplusplus/AFLplusplus/blob/stable/docs/tutorials.md)
-
-reversanje c#-a - [dotpeek](https://www.jetbrains.com/decompiler/) -- na tej temi [ysoserial.net](https://github.com/pwntester/ysoserial.net) in [ysonet](https://github.com/irsdl/ysonet)
-
-ldd - view versions of ld and glibc - asterisk, view where they are linked to, not the version!
-    - also, to kaže dependencije depencencijev, tko da ne bo nujno required od osnovnega elfa, ampak lahko je 
+ldd -v - view versions of ld and glibc - asterisk, view where they are linked to, not the version!
+- also, to kaže dependencije depencencijev, tko da ne bo nujno required od osnovnega elfa, ampak lahko je 
       dependency od depencija
 
 pwninit - use the correct libc
+    - al pa pač patchelf --replace-needed libc.so.6 \<mojlibc\> app
+    - patchelf --set-interpreter \<mojld\> app
 
 objdump -d \<stuff>
 
@@ -28,7 +29,7 @@ zalaufi [ropr](https://github.com/Ben-Lichtman/ropr)!!! (also, [one_gadget](http
 
 -- also also pwntools also zna iskat gadgete - https://docs.pwntools.com/en/stable/rop/rop.html
 
-https://dogbolt.org/ (decomp) in https://godbolt.org/ (comp)
+https://dogbolt.org/ (decompiler) in https://godbolt.org/ (compilerji)
 
 sicer za decomp [ida](https://hexrays.su/) / [ghidra](https://github.com/nationalsecurityagency/ghidra), [angr](https://angr.io/) bi znal bit uporaben še posebi za kkšn rust
 
@@ -276,9 +277,8 @@ https://www.ired.team/offensive-security/code-injection-process-injection/binary
     - v 2.43 afaik se alocira ob dovolj majhnem free-ju (actually ko ga rabimo)
 - zelo velik malloc (>= 0x20000 in večji kot top chunk) bo posebej `mmap`-an pred TLS
 
-[shellphish/how2heap](https://github.com/shellphish/how2heap) !!
-
-[https://github.com/DhavalKapil/heap-exploitation](https://github.com/shellphish/how2heap)
+- [shellphish/how2heap](https://github.com/shellphish/how2heap) !!
+- [DhavalKapil/heap-exploitation](https://github.com/shellphish/how2heap)
 
 ## glibc version thingies
 
@@ -509,6 +509,9 @@ V splošnem:
 
 ## random
 
+do not underestimate fuzzing, especially parsers
+- [AFL++](https://github.com/aflplusplus/aflplusplus), [tutorials](https://github.com/AFLplusplus/AFLplusplus/blob/stable/docs/tutorials.md)
+
 brunners takeaways
 - TLS before libc can be VERY useful in rare cases (tud sam za shranjevat podatke, če veš samo libc address npr.)
 - **sometimes calling main again is very useful - first try to leak stuff, second try uses the leaks!**
@@ -597,3 +600,22 @@ char *raw = str.c_str();
 str.resize(16); // mogoče realocira str, kar bo invalidatal raw
 raw[0] = 'x'; // Use after free
 ```
+
+## C#
+
+- reversanje: [dotpeek](https://www.jetbrains.com/decompiler/)
+
+- najpogostejši RCEji so v deserializerjih / formatterjih
+
+- exploit generatorji: [ysoserial.net](https://github.com/pwntester/ysoserial.net) in [ysonet](https://github.com/irsdl/ysonet)
+
+## Hardware Fault injection
+
+Hardware fault injection: turn the power down for e.g. one specific instruction to skip it
+
+Some boards have a voltage regulator, where you can just wire your own thingy on to trick it
+
+[RPi picoti](https://www.raspberrypi.com/products/raspberry-pi-pico/) [(2)](https://www.raspberrypi.com/products/raspberry-pi-pico-2/) so precej pogosti za to ([Hextree Faultier](https://www.hextree.io/product/faultier), enega smo dobil na ECSCju)
+
+[SoK: A Beginner-Friendly Introduction to Fault Injection Attacks (arxiv))](https://arxiv.org/html/2509.18341v1)
+
