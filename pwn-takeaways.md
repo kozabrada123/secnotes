@@ -2,6 +2,7 @@
 ## Reading material
 
 - [**ir0nstone gitbook**](https://ir0nstone.gitbook.io/notes) - osnove
+- [Nightmare](https://guyinatuxedo.github.io/index.html) ([GitHub](https://github.com/guyinatuxedo/nightmare/))
 - [ljagiello/ctf-skills](https://github.com/ljagiello/ctf-skills/tree/main/ctf-pwn) - random advanced stvari
 - [revija phrack](https://phrack.org/)
 - [bootlin](https://elixir.bootlin.com/glibc/glibc-2.44/source) - source raznih stvari (linux, glibc, ...)
