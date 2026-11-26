@@ -6,6 +6,7 @@
 - [revija phrack](https://phrack.org/)
 - [bootlin](https://elixir.bootlin.com/glibc/glibc-2.44/source) - source raznih stvari (linux, glibc, ...)
 - [ccc](https://media.ccc.de/) in [defcon](https://media.defcon.org/?C=M&O=A)
+- [exploit-db](https://www.exploit-db.com/)
 - (velik drugih random linkov je v tem dokumentu)
 
 ## Main
@@ -319,7 +320,7 @@ https://sourceware.org/glibc/wiki/Glibc%20Timeline
 
 2.29 | Tcache keys, double-free protection; also makes glibc verify the size of the previous block
 
-2.32 | Safe linking - XOR mangling of pointers for singly linked lists (tcache, fastbins)
+2.32 | Safe linking - XOR mangling of pointers for singly linked lists (tcache, fastbins) (aka. [PROTECT_PTR](https://elixir.bootlin.com/glibc/glibc-2.42/source/malloc/malloc.c#L331))
 
 2.34 | \_\_malloc\_hook, \_\_free\_hook and \_\_realloc\_hook are kill; tcache keys are now random instead of heap pointers
 
@@ -329,7 +330,7 @@ https://sourceware.org/glibc/wiki/Glibc%20Timeline
 
 2.39 | vulnerable na https://ubuntu.com/security/CVE-2024-2961 (iconv)
 
-2.43 | fastbins are kill
+2.43 | fastbins are kill, majhni chunki grejo direktno v smallbin [(ruminations - this is good for attackers)](https://phrack.org/issues/73/poor-little-chunks_md#article); tcache bini imajo zdej 16 namest 7 chunkov ([2.43](https://elixir.bootlin.com/glibc/glibc-2.43/source/malloc/malloc.c#L317) vs [2.42](https://elixir.bootlin.com/glibc/glibc-2.42/source/malloc/malloc.c#L315))
 
 2.44 | pointer guard removed iz tcbhead_t-ja ([commit](https://sourceware.org/git/?p=glibc.git;a=commit;h=a5ec880f808e))
 
